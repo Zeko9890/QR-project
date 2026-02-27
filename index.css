@@ -1,0 +1,327 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+
+:root {
+    --primary: #00e5ff;
+    --secondary: #ff0055;
+    --accent: #9d00ff;
+    --bg: #121212;
+    --ui-bg: #1a1a1a;
+    --border: #333;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body {
+    background-color: var(--bg);
+    color: #e0e0e0;
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg);
+}
+
+canvas {
+    display: block;
+    background-color: #0d0d0d;
+}
+
+/* UI Overlay */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hud-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.stats-panel {
+    background: var(--ui-bg);
+    border: 2px solid var(--border);
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.stat-value {
+    font-size: 26px;
+    font-weight: 900;
+}
+
+.health-bar-container {
+    width: 250px;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--secondary);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+#health-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary), var(--accent));
+    box-shadow: 0 0 15px var(--secondary);
+    transition: width 0.3s ease-out;
+}
+
+.sync-bar-container {
+    width: 180px;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--primary);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+#sync-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #fff, var(--primary));
+    box-shadow: 0 0 10px var(--primary);
+    transition: width 0.1s linear;
+}
+
+.overdrive-active #sync-fill {
+    background: linear-gradient(90deg, #ffeb3b, #fff);
+    box-shadow: 0 0 20px #fff;
+    animation: sync-pulse 0.5s infinite;
+}
+
+@keyframes sync-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.weapon-info {
+    text-align: right;
+}
+
+#weapon-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+/* Hidden Utility */
+.hidden {
+    display: none !important;
+}
+
+.overlay.hidden {
+    display: none !important;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    backdrop-filter: blur(15px);
+    transition: opacity 0.5s ease;
+}
+
+.game-title {
+    font-size: clamp(48px, 10vw, 120px);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+    background: linear-gradient(180deg, #fff 0%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 20px var(--primary));
+    animation: glitch-text 4s infinite;
+}
+
+@keyframes glitch-text {
+
+    0%,
+    100% {
+        transform: skew(0deg);
+    }
+
+    1% {
+        transform: skew(10deg);
+        filter: hue-rotate(90deg);
+    }
+
+    2% {
+        transform: skew(-10deg);
+        filter: hue-rotate(-90deg);
+    }
+
+    3% {
+        transform: skew(0deg);
+        filter: none;
+    }
+
+    45% {
+        transform: scale(1);
+    }
+
+    46% {
+        transform: scale(1.05) translateX(5px);
+    }
+
+    47% {
+        transform: scale(1);
+    }
+}
+
+.btn-start {
+    background: var(--primary);
+    color: #000;
+    border: none;
+    padding: 18px 45px;
+    font-size: 20px;
+    font-weight: 700;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: all;
+}
+
+.btn-start:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px var(--primary);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    padding: 12px 35px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: all;
+    margin-top: 15px;
+}
+
+.btn-secondary:hover {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 20px var(--primary);
+}
+
+.instructions {
+    margin-top: 40px;
+    display: flex;
+    gap: 30px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+}
+
+.key-hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.key {
+    background: #fff;
+    color: #000;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 900;
+    font-size: 12px;
+}
+
+/* Vibrancy & FX */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.danger-blink {
+    animation: blink-red 0.5s infinite;
+}
+
+@keyframes blink-red {
+
+    0%,
+    100% {
+        border-color: var(--secondary);
+        box-shadow: 0 0 10px var(--secondary);
+    }
+
+    50% {
+        border-color: #fff;
+        box-shadow: 0 0 20px #fff;
+    }
+}
+
+/* HUD Polish */

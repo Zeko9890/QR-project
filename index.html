@@ -1,399 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The QR Code Revolution</title>
-    <style>
-        /* --- CSS STYLES --- */
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
-
-        :root {
-            --primary: #00ff41; /* Hacker Green */
-            --bg: #0d0d0d;
-            --glass: rgba(255, 255, 255, 0.05);
-            --border: rgba(0, 255, 65, 0.3);
-            --text-main: #e0e0e0;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            overflow-x: hidden;
-            line-height: 1.6;
-        }
-
-        /* --- BACKGROUND EFFECT --- */
-        .bg-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            /* Creates a QR-like grid pattern */
-            background-image: 
-                linear-gradient(var(--glass) 1px, transparent 1px),
-                linear-gradient(90deg, var(--glass) 1px, transparent 1px);
-            background-size: 30px 30px;
-            opacity: 0.3;
-        }
-        
-        /* The Scanning Line Animation */
-        .scanner-line {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: var(--primary);
-            box-shadow: 0 0 15px var(--primary);
-            animation: scan 4s infinite linear;
-            z-index: -1;
-            opacity: 0.5;
-        }
-
-        @keyframes scan {
-            0% { top: -10%; }
-            100% { top: 110%; }
-        }
-
-        /* --- TYPOGRAPHY --- */
-        h1, h2, h3 {
-            font-family: 'Orbitron', sans-serif;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 1rem;
-        }
-
-        p {
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-        }
-
-        /* --- LAYOUT --- */
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        header {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            position: relative;
-        }
-
-        .qr-hero-box {
-            border: 2px solid var(--primary);
-            padding: 20px;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
-        }
-
-        /* Decorative QR Corners */
-        .corner {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 4px solid var(--primary);
-            background: var(--bg);
-        }
-        .tl { top: -4px; left: -4px; border-right: 0; border-bottom: 0; }
-        .tr { top: -4px; right: -4px; border-left: 0; border-bottom: 0; }
-        .bl { bottom: -4px; left: -4px; border-right: 0; border-top: 0; }
-        .br { bottom: -4px; right: -4px; border-left: 0; border-top: 0; }
-
-        .hero-title {
-            font-size: 4rem;
-            text-shadow: 0 0 10px var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .hero-sub {
-            font-size: 1.2rem;
-            color: #fff;
-        }
-
-        /* --- SECTIONS --- */
-        section {
-            padding: 4rem 0;
-            opacity: 0; /* For scroll animation */
-            transform: translateY(20px);
-            transition: all 0.8s ease-out;
-        }
-
-        section.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .card {
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border);
-            padding: 2rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            transition: transform 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 255, 65, 0.1);
-        }
-
-        /* --- GRID SYSTEMS --- */
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-        }
-
-        .list-item {
-            margin-bottom: 1rem;
-            padding-left: 1rem;
-            border-left: 3px solid var(--primary);
-        }
-
-        .list-title {
-            color: #fff;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 0.2rem;
-        }
-
-        /* --- PROCESS STEPPER --- */
-        .process-container {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .step {
-            flex: 1;
-            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
-            padding: 1.5rem;
-            text-align: center;
-            border: 1px solid #333;
-            border-radius: 10px;
-            min-width: 250px;
-        }
-
-        .step h3 { font-size: 1.5rem; }
-
-        /* --- FOOTER --- */
-        footer {
-            text-align: center;
-            padding: 2rem;
-            border-top: 1px solid #333;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-    </style>
+    <title>CYBERSTRIKE: OVERDRIVE</title>
+    <meta name="description"
+        content="A high-octane arcade run-and-gun platformer with neon graphics and addictive gameplay.">
+    <link rel="stylesheet" href="index.css">
 </head>
+
 <body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
 
-    <div class="bg-overlay"></div>
-    <div class="scanner-line"></div>
+        <div id="ui-layer">
+            <div class="hud-top">
+                <div class="stats-panel">
+                    <span class="stat-label">System Integrity</span>
+                    <div class="health-bar-container">
+                        <div id="health-fill"></div>
+                    </div>
+                </div>
+                <div class="stats-panel">
+                    <span class="stat-label">Neural Score</span>
+                    <div id="score" class="stat-value">000000</div>
+                </div>
+                <div class="stats-panel weapon-info">
+                    <span class="stat-label">Active Payload</span>
+                    <div id="weapon-name">Standard Pulse</div>
+                </div>
+                <div class="stats-panel">
+                    <span class="stat-label">Neural Sync</span>
+                    <div class="sync-bar-container">
+                        <div id="sync-fill"></div>
+                    </div>
+                </div>
+                <div class="stats-panel">
+                    <span class="stat-label">Sector Distance</span>
+                    <div id="distance" class="stat-value">0m</div>
+                </div>
+            </div>
 
-    <header>
-        <div class="container">
-            <div class="qr-hero-box">
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-                <h1 class="hero-title">QR CODE</h1>
-                <p class="hero-sub">The Quick Response Revolution</p>
+            <!-- Boss HUD -->
+            <div id="boss-hud" class="hidden"
+                style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); width: 60%; pointer-events: none;">
+                <div class="stat-label" style="text-align: center; margin-bottom: 5px;">Boss Presence Detected</div>
+                <div class="health-bar-container" style="width: 100%; height: 20px; border-color: var(--secondary);">
+                    <div id="boss-health-fill"
+                        style="width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff007a); box-shadow: 0 0 20px #ff0000;">
+                    </div>
+                </div>
             </div>
-            <div style="margin-top: 2rem; max-width: 700px;">
-                <p>
-                    Invented in 1994 by <strong>Masahiro Hara</strong> at Denso Wave in Japan. 
-                    Inspired by the game of <em>Go</em>, created to track automotive parts faster than traditional barcodes.
-                </p>
-            </div>
-            <div style="margin-top: 3rem;">
-                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#00ff41" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
-                </svg>
+
+        </div>
+
+        <div id="start-screen" class="overlay">
+            <h1 class="game-title">CYBERSTRIKE<br>OVERDRIVE</h1>
+            <button id="start-btn" class="btn-start">Initiate Protocol</button>
+            <div class="instructions">
+                <div class="key-hint"><span class="key">WASD</span> Movement</div>
+                <div class="key-hint"><span class="key">SPACE</span> Jump</div>
+                <div class="key-hint"><span class="key">CLICK</span> Fire</div>
+                <div class="key-hint"><span class="key">SHIFT</span> Dash</div>
             </div>
         </div>
-    </header>
 
-    <div class="container">
-        
-        <section id="intro">
-            <div class="card">
-                <h2>Origins & Evolution</h2>
-                <p>
-                    The key features of the QR code are high-speed readability, large data capacity (including Japanese characters), and error correction. 
-                    Global adoption exploded after Denso Wave made the patents free, eventually integrating with smartphone cameras in the 2000s for everything from payments to marketing.
-                </p>
+        <div id="game-over-screen" class="overlay hidden">
+            <h1 class="game-title">SYSTEM HALT</h1>
+            <div class="stats-panel" style="margin-bottom: 30px;">
+                <span class="stat-label">Final Score</span>
+                <div id="final-score" class="stat-value">000000</div>
             </div>
-        </section>
-
-        <section id="uses">
-            <h2>Common Uses</h2>
-            <div class="grid-3">
-                <div class="card">
-                    <span class="list-title">Contactless Payments</span>
-                    Scan to pay at stores or for services instantly.
-                </div>
-                <div class="card">
-                    <span class="list-title">Marketing</span>
-                    Direct to landing pages, videos, promotions, or social media.
-                </div>
-                <div class="card">
-                    <span class="list-title">Information Access</span>
-                    Link to menus, product details, instructions, or digital brochures.
-                </div>
-                <div class="card">
-                    <span class="list-title">Ticketing & Check-ins</span>
-                    Board flights, enter venues, or attend events seamlessly.
-                </div>
-                <div class="card">
-                    <span class="list-title">Wi-Fi Access</span>
-                    Connect to a network instantly by scanning the code.
-                </div>
-                <div class="card">
-                    <span class="list-title">Logistics</span>
-                    Track inventory, shipments, and assets with precision.
-                </div>
-            </div>
-        </section>
-
-        <section id="industries">
-            <h2>Specific Industries</h2>
-            <div class="grid-2">
-                <div class="card">
-                    <h3>Restaurants</h3>
-                    <p>Digital menus, ordering, and contactless payment to reduce physical contact.</p>
-                </div>
-                <div class="card">
-                    <h3>Healthcare</h3>
-                    <p>Patient info, medicine details, or appointment reminders for better care management.</p>
-                </div>
-                <div class="card">
-                    <h3>Education</h3>
-                    <p>Sharing resources, interactive lessons, or virtual tours for students.</p>
-                </div>
-                <div class="card">
-                    <h3>Retail</h3>
-                    <p>Loyalty programs, product info, or instant discounts at the shelf.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="how-it-works">
-            <h2>How They Work</h2>
-            <div class="process-container">
-                <div class="step">
-                    <h3>1. Scan</h3>
-                    <p>Use your smartphone camera to read the unique pattern.</p>
-                </div>
-                <div class="step">
-                    <h3>2. Decode</h3>
-                    <p>Software extracts the encoded data (URL, text, etc.).</p>
-                </div>
-                <div class="step">
-                    <h3>3. Act</h3>
-                    <p>Your phone performs the action, like opening a webpage.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="business">
-            <h2>Key Effects in Business</h2>
-            <div class="card">
-                <div class="list-item">
-                    <span class="list-title">Enhanced Customer Engagement</span>
-                    Turn print ads, packaging, or physical spaces into interactive experiences, directing users to social media, videos, or websites.
-                </div>
-                <div class="list-item">
-                    <span class="list-title">Streamlined Operations</span>
-                    Reduce printing costs (e.g., digital menus) and speed up transactions, improving efficiency.
-                </div>
-                <div class="list-item">
-                    <span class="list-title">Valuable Data & Analytics</span>
-                    Dynamic QR codes provide real-time data on scans, locations, and user behavior to refine strategies.
-                </div>
-                <div class="list-item">
-                    <span class="list-title">Cost-Effective Marketing</span>
-                    Cheaper than extensive print materials, offering high ROI by tracking campaign performance.
-                </div>
-                <div class="list-item">
-                    <span class="list-title">Improved Customer Experience</span>
-                    Offer instant access to information, reducing friction and increasing satisfaction.
-                </div>
-            </div>
-        </section>
-
-        <section id="disadvantages">
-            <h2 style="color: #ff4141;">Disadvantages & Risks</h2>
-            <div class="card" style="border-color: rgba(255, 65, 65, 0.3);">
-                <div class="list-item" style="border-left-color: #ff4141;">
-                    <span class="list-title">Security Risks (QR Spoofing)</span>
-                    Fraudsters may place fake QR codes on legitimate surfaces to redirect users to phishing websites.
-                </div>
-                <div class="list-item" style="border-left-color: #ff4141;">
-                    <span class="list-title">Reliance on Technology</span>
-                    Requires a working smartphone camera and active internet connection, limiting accessibility in poor coverage areas.
-                </div>
-                <div class="list-item" style="border-left-color: #ff4141;">
-                    <span class="list-title">Scanning & Design Issues</span>
-                    Poor print quality, low resolution, or curved surfaces can make codes unreadable.
-                </div>
-                <div class="list-item" style="border-left-color: #ff4141;">
-                    <span class="list-title">User Trust</span>
-                    Some demographics may be unfamiliar with the technology or wary of scanning unknown codes.
-                </div>
-            </div>
-        </section>
-
+            <button id="restart-btn" class="btn-start">Reboot System</button>
+            <button id="home-btn" class="btn-secondary">Base Command</button>
+        </div>
     </div>
 
-    <footer>
-        <p>Project on QR Technology | Created for School Project | By Zeko </p>
-    </footer>
-
-    <script>
-        // Simple Scroll Animation Script
-        const observerOptions = {
-            threshold: 0.2
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('section').forEach(section => {
-            observer.observe(section);
-        });
-    </script>
+    <script src="game.js"></script>
 </body>
+
 </html>
