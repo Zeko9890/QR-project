@@ -228,17 +228,71 @@ if (isTouchDevice) {
     bindTouch(btnJump, () => { keys['Space'] = true; }, () => { keys['Space'] = false; });
     bindTouch(btnDash, () => { keys['ShiftLeft'] = true; }, () => { keys['ShiftLeft'] = false; });
 
-    // Shoot
-    bindTouch(btnShoot, () => {
+    // TRUE TWIN-STICK FIRE JOYSTICK LOGIC
+    let fireTouchId = null;
+    let isFiringJoy = false;
+
+    btnShoot.addEventListener('touchstart', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const touch = e.changedTouches[0];
+        fireTouchId = touch.identifier;
+        isFiringJoy = true;
         mouse.down = true;
-        // Auto-aim forward if no prior mouse movement
-        if (mouse.x === 0 && mouse.y === 0) {
-            mouse.x = canvas.width * 0.8;
-            mouse.y = canvas.height * 0.5;
+        updateAimTracking(touch);
+    }, { passive: false });
+
+    // Global isolated touchmove for the fire joystick
+    window.addEventListener('touchmove', (e) => {
+        if (!isFiringJoy) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (t.identifier === fireTouchId) {
+                e.preventDefault(); // Prevent scroll while aiming
+                updateAimTracking(t);
+                break;
+            }
         }
-    }, () => {
-        mouse.down = false;
-    });
+    }, { passive: false });
+
+    const clearFireJoy = (e) => {
+        if (!isFiringJoy) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === fireTouchId) {
+                isFiringJoy = false;
+                fireTouchId = null;
+                mouse.down = false;
+                break;
+            }
+        }
+    };
+    window.addEventListener('touchend', clearFireJoy, { passive: false });
+    window.addEventListener('touchcancel', clearFireJoy, { passive: false });
+
+    function updateAimTracking(touch) {
+        if (!player) return; // Guard for dead state
+
+        const rect = btnShoot.getBoundingClientRect();
+        const joyCenterX = rect.left + rect.width / 2;
+        const joyCenterY = rect.top + rect.height / 2;
+
+        const dx = touch.clientX - joyCenterX;
+        const dy = touch.clientY - joyCenterY;
+
+        // Visual position of player in canvas screen coords
+        const screenPx = player.x - camera.x + player.w / 2;
+        const screenPy = player.y - camera.y + player.h / 2;
+
+        if (Math.hypot(dx, dy) < 10) {
+            // Deadzone (center): Aim forward
+            mouse.x = screenPx + 1000;
+            mouse.y = screenPy;
+        } else {
+            const angle = Math.atan2(dy, dx);
+            // Project far ahead to ensure accurate line
+            mouse.x = screenPx + Math.cos(angle) * 1000;
+            mouse.y = screenPy + Math.sin(angle) * 1000;
+        }
+    }
 
     // Global safety: if ALL touches end, force-clear all input flags.
     // This prevents 'stuck' keys when fingers slide off buttons.
@@ -257,17 +311,8 @@ if (isTouchDevice) {
         keys['Space'] = false;
         keys['ShiftLeft'] = false;
         mouse.down = false;
+        isFiringJoy = false;
     }, { passive: true });
-
-    // Touch Move for Aiming (use last touch, not first, to avoid hijack)
-    window.addEventListener('touchmove', (e) => {
-        if (e.touches.length > 0) {
-            const touch = e.touches[e.touches.length - 1];
-            const rect = canvas.getBoundingClientRect();
-            mouse.x = touch.clientX - rect.left;
-            mouse.y = touch.clientY - rect.top;
-        }
-    }, { passive: false });
 }
 
 /**
@@ -591,6 +636,8 @@ class PlayerTitan {
                 life: isNeuralOverdrive ? 1.5 : 1.0,
                 isNeural: isNeuralOverdrive
             });
+            // Protect against infinite trail growth
+            if (this.trail.length > 40) this.trail.shift();
         }
         for (let j = this.trail.length - 1; j >= 0; j--) {
             this.trail[j].life -= dt * 3;
@@ -1966,7 +2013,7 @@ function fulfillPickup(pu, index) {
 }
 
 function garbageCollection() {
-    // Aggressive cleanup for performance
+    // Aggressive cleanup for performance and freeze prevention
     const cleanDist = isMobile ? 1000 : 1500;
     if (platforms.length > 40) platforms = platforms.filter(p => p.x + p.w > camera.x - cleanDist);
     if (pickups.length > 15) pickups = pickups.filter(pu => pu.posX > camera.x - cleanDist);
@@ -1976,6 +2023,8 @@ function garbageCollection() {
     if (particles.length > MAX_PARTICLES) particles.splice(0, particles.length - MAX_PARTICLES);
     if (destructibles.length > (isMobile ? 10 : 20)) destructibles = destructibles.filter(db => db.x + db.w > camera.x - cleanDist);
     if (urbanParallax.length > (isMobile ? 8 : 20)) urbanParallax = urbanParallax.filter(s => s.x + s.w > camera.x - 3000);
+    if (floatingTexts.length > 40) floatingTexts.splice(0, floatingTexts.length - 40); // Hard bounds
+    if (weatherSystems.length > 200) weatherSystems.splice(0, weatherSystems.length - 200); // Hard bounds
 }
 
 function processScoring(delta) {
