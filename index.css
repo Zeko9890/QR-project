@@ -381,16 +381,12 @@ canvas {
 
 .joy-btn {
     width: 65px;
-    /* Increased from 52px */
     height: 65px;
     border-radius: 50%;
     background: rgba(26, 26, 26, 0.85);
-    /* Slightly darker for contrast */
     border: 3px solid var(--primary);
-    /* Thicker border */
     color: var(--primary);
     font-size: 22px;
-    /* Increased */
     font-weight: 900;
     display: flex;
     justify-content: center;
@@ -400,13 +396,39 @@ canvas {
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
+    position: relative;
+    overflow: hidden;
 }
 
-.joy-btn:active {
+.joy-btn:active:not(.move-joy) {
     background: var(--primary);
     color: #000;
     transform: scale(0.92);
 }
+
+/* New Left Movement Joystick */
+.move-joy {
+    width: 120px;
+    height: 120px;
+    background: rgba(10, 10, 10, 0.7);
+    border: 2px solid rgba(0, 229, 255, 0.3);
+    margin-left: 10px;
+    margin-bottom: 20px;
+}
+
+.joy-stick-inner {
+    width: 50px;
+    height: 50px;
+    background: var(--primary);
+    border-radius: 50%;
+    position: absolute;
+    box-shadow: 0 0 15px var(--primary);
+    transition: transform 0.05s linear;
+    pointer-events: none;
+    left: calc(50% - 25px);
+    top: calc(50% - 25px);
+}
+
 
 .action-btn {
     width: 70px;

@@ -183,9 +183,21 @@ window.addEventListener('mousedown', () => mouse.down = true);
 window.addEventListener('mouseup', () => mouse.down = false);
 
 // Clear all inputs on focus loss to prevent stuck movement
+let fireTouchId = null;
+let isFiringJoy = false;
+let moveTouchId = null;
+let isMovingJoy = false;
+
 function clearAllInputs() {
     Object.keys(keys).forEach(k => keys[k] = false);
     mouse.down = false;
+    isFiringJoy = false;
+    fireTouchId = null;
+    isMovingJoy = false;
+    moveTouchId = null;
+
+    const moveInner = document.querySelector('.joy-stick-inner');
+    if (moveInner) moveInner.style.transform = 'translate(0px, 0px)';
 }
 window.addEventListener('blur', clearAllInputs);
 document.addEventListener('visibilitychange', () => {
@@ -220,17 +232,81 @@ if (isTouchDevice) {
         btn.addEventListener('touchcancel', (e) => { e.preventDefault(); onUp(); }, { passive: false });
     }
 
-    // Directional
-    bindTouch(btnLeft, () => { keys['ArrowLeft'] = true; }, () => { keys['ArrowLeft'] = false; });
-    bindTouch(btnRight, () => { keys['ArrowRight'] = true; }, () => { keys['ArrowRight'] = false; });
+    // Movement Unified Joystick
+    const moveJoystick = document.getElementById('move-joystick');
+    const moveJoyInner = moveJoystick.querySelector('.joy-stick-inner');
+
+    moveJoystick.addEventListener('touchstart', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const touch = e.changedTouches[0];
+        moveTouchId = touch.identifier;
+        isMovingJoy = true;
+        updateMoveTracking(touch);
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isMovingJoy) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (t.identifier === moveTouchId) {
+                e.preventDefault();
+                updateMoveTracking(t);
+                break;
+            }
+        }
+    }, { passive: false });
+
+    const clearMoveJoy = (e) => {
+        if (!isMovingJoy) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === moveTouchId) {
+                isMovingJoy = false;
+                moveTouchId = null;
+                keys['ArrowLeft'] = false;
+                keys['ArrowRight'] = false;
+                moveJoyInner.style.transform = `translate(0px, 0px)`;
+                break;
+            }
+        }
+    };
+    window.addEventListener('touchend', clearMoveJoy, { passive: false });
+    window.addEventListener('touchcancel', clearMoveJoy, { passive: false });
+
+    function updateMoveTracking(touch) {
+        const rect = moveJoystick.getBoundingClientRect();
+        const joyCenterX = rect.left + rect.width / 2;
+        const joyCenterY = rect.top + rect.height / 2;
+
+        let dx = touch.clientX - joyCenterX;
+        let dy = touch.clientY - joyCenterY;
+        const maxDist = rect.width / 2 - 15;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > maxDist) {
+            dx = (dx / dist) * maxDist;
+            dy = (dy / dist) * maxDist;
+        }
+
+        moveJoyInner.style.transform = `translate(${dx}px, ${dy}px)`;
+
+        // Horizontal thresholds for walking
+        if (dx < -15) {
+            keys['ArrowLeft'] = true;
+            keys['ArrowRight'] = false;
+        } else if (dx > 15) {
+            keys['ArrowRight'] = true;
+            keys['ArrowLeft'] = false;
+        } else {
+            keys['ArrowLeft'] = false;
+            keys['ArrowRight'] = false;
+        }
+    }
 
     // Actions
     bindTouch(btnJump, () => { keys['Space'] = true; }, () => { keys['Space'] = false; });
     bindTouch(btnDash, () => { keys['ShiftLeft'] = true; }, () => { keys['ShiftLeft'] = false; });
 
     // TRUE TWIN-STICK FIRE JOYSTICK LOGIC
-    let fireTouchId = null;
-    let isFiringJoy = false;
 
     btnShoot.addEventListener('touchstart', (e) => {
         e.preventDefault(); e.stopPropagation();
@@ -681,42 +757,57 @@ class PlayerTitan {
             if (this.powerUps[key] > 0) this.powerUps[key] -= dt;
         });
 
-        this.vy += this.physGravity * dt;
-
         // Smooth visual scaling back to normal
         this.scaleX = lerp(this.scaleX, 1, 0.15);
         this.scaleY = lerp(this.scaleY, 1, 0.15);
 
         const collisionTargets = [...platforms, ...destructibles];
-
-        // 1. X-Axis Movement & Collision
-        this.x += this.vx * dt;
-        collisionTargets.forEach(p => {
-            if (this.x < p.x + p.w && this.x + this.w > p.x &&
-                this.y < p.y + p.h && this.y + this.h > p.y) {
-                if (this.vx > 0) this.x = p.x - this.w;
-                else if (this.vx < 0) this.x = p.x + p.w;
-            }
-        });
-
-        // 2. Y-Axis Movement & Collision
-        this.y += this.vy * dt;
         let onSolid = false;
-        collisionTargets.forEach(p => {
-            if (this.x < p.x + p.w && this.x + this.w > p.x &&
-                this.y < p.y + p.h && this.y + this.h > p.y) {
-                if (this.vy >= 0) {
-                    this.y = p.y - this.h;
-                    this.vy = 0;
-                    this.jumpCount = 0;
-                    this.coyoteTime = 0.15;
-                    onSolid = true;
-                } else if (this.vy < 0) {
-                    this.y = p.y + p.h;
-                    this.vy = 0;
+
+        // Sub-step physics to prevent tunneling at low framerates (mobile freeze issue)
+        const maxStep = 0.016;
+        let timeRemaining = dt;
+
+        while (timeRemaining > 0) {
+            const sDt = Math.min(timeRemaining, maxStep);
+            timeRemaining -= sDt;
+
+            this.vy += this.physGravity * sDt;
+
+            // 1. X-Axis Movement & Collision
+            this.x += this.vx * sDt;
+            if (this.x < 0) this.x = 0; // Prevent falling off the left map edge on spawn
+
+            collisionTargets.forEach(p => {
+                // Include a 1px margin on Y to avoid triggering wall collisions when sliding on floors
+                if (this.x < p.x + p.w && this.x + this.w > p.x &&
+                    this.y < p.y + p.h - 1 && this.y + this.h > p.y + 1) {
+                    if (this.vx > 0) this.x = p.x - this.w;
+                    else if (this.vx < 0) this.x = p.x + p.w;
                 }
-            }
-        });
+            });
+
+            // 2. Y-Axis Movement & Collision
+            this.y += this.vy * sDt;
+            let stepGrounded = false;
+            collisionTargets.forEach(p => {
+                // Include a 1px margin on X to avoid triggering vertical snaps during wall slides
+                if (this.x < p.x + p.w - 1 && this.x + this.w > p.x + 1 &&
+                    this.y < p.y + p.h && this.y + this.h > p.y) {
+                    if (this.vy >= 0) {
+                        this.y = p.y - this.h;
+                        this.vy = 0;
+                        this.jumpCount = 0;
+                        this.coyoteTime = 0.15;
+                        stepGrounded = true;
+                    } else if (this.vy < 0) {
+                        this.y = p.y + p.h;
+                        this.vy = 0;
+                    }
+                }
+            });
+            if (stepGrounded) onSolid = true;
+        }
 
         if (onSolid && !this.groundedState) {
             // Landing Event
@@ -1685,8 +1776,7 @@ function rebootSystem() {
     weatherSystems = [];
 
     // Clear stuck input (critical for mobile restart)
-    Object.keys(keys).forEach(k => keys[k] = false);
-    mouse.down = false;
+    clearAllInputs();
 
     // UI Hard Reset
     bossHud.classList.add('hidden');
@@ -1715,8 +1805,7 @@ function initiateSystemHalt() {
     document.body.classList.remove('danger');
 
     // Clear all stuck inputs on game over
-    Object.keys(keys).forEach(k => keys[k] = false);
-    mouse.down = false;
+    clearAllInputs();
 
     if (isTouchDevice) mobileControls.classList.add('hidden');
 }
