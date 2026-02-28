@@ -751,11 +751,8 @@ class PlayerTitan {
                 } else {
                     // Vertical resolution
                     if (dy < 0) {
-                        // CEILING IMPACT (player below platform bottom)
-                        if (this.vy < 0) this.vy = 0;
-                        this.y = p.y + p.h;
-                    } else {
-                        // TOP SURFACE IMPACT (landing)
+                        // TOP SURFACE IMPACT (landing) 
+                        // dy < 0 means player center is above platform center
                         if (this.vy >= 0) {
                             this.vy = 0;
                             this.y = p.y - this.h;
@@ -763,6 +760,10 @@ class PlayerTitan {
                             this.coyoteTime = 0.15;
                             isGrounded = true;
                         }
+                    } else {
+                        // CEILING IMPACT (player below platform bottom)
+                        if (this.vy < 0) this.vy = 0;
+                        this.y = p.y + p.h;
                     }
                 }
             }
@@ -1644,7 +1645,7 @@ function activateNeuralOverdrive() {
 function rebootSystem() {
     player = new PlayerTitan();
     platforms = []; particles = []; bullets = []; enemies = []; pickups = [];
-    floatingTexts = []; alerts = []; destructibles = [];
+    floatingTexts = []; destructibles = [];
     boss = null;
     score = 0; killScore = 0; comboCount = 0; comboTimer = 0;
     nextPlatformX = 0;
