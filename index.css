@@ -347,37 +347,50 @@ canvas {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    padding: 0 10px 8px 10px;
-    pointer-events: auto;
+    padding: 0 15px 15px 15px;
+    /* Increased edge padding */
+    pointer-events: none;
+    /* Let empty space pass touches */
     z-index: 100;
 }
 
 .control-group {
     display: flex;
-    gap: 8px;
+    gap: 15px;
+    /* Increased gap */
     align-items: flex-end;
+    pointer-events: auto;
+    /* Buttons catch touches */
 }
 
 /* D-pad style left group */
 .left-group {
     flex-direction: row;
+    gap: 20px;
+    /* Big gap between L/R buttons */
+    margin-bottom: 5px;
 }
 
-/* Right group - action buttons in a compact layout */
+/* Right group - action buttons in an ergonomic arc layout */
 .right-group {
     flex-direction: row;
     align-items: flex-end;
-    gap: 6px;
+    gap: 12px;
+    /* Action buttons spacing */
 }
 
 .joy-btn {
-    width: 52px;
-    height: 52px;
+    width: 65px;
+    /* Increased from 52px */
+    height: 65px;
     border-radius: 50%;
-    background: rgba(26, 26, 26, 0.75);
-    border: 2px solid var(--primary);
+    background: rgba(26, 26, 26, 0.85);
+    /* Slightly darker for contrast */
+    border: 3px solid var(--primary);
+    /* Thicker border */
     color: var(--primary);
-    font-size: 18px;
+    font-size: 22px;
+    /* Increased */
     font-weight: 900;
     display: flex;
     justify-content: center;
@@ -396,12 +409,27 @@ canvas {
 }
 
 .action-btn {
-    width: 56px;
-    height: 56px;
-    font-size: 11px;
+    width: 70px;
+    /* Increased from 56px */
+    height: 70px;
+    font-size: 14px;
+    /* Increased */
+    border-width: 3px;
     border-color: var(--accent);
     color: var(--accent);
     letter-spacing: 0.5px;
+}
+
+/* Ergonomic arced placement for right thumb */
+#btn-dash {
+    margin-bottom: 20px;
+    /* Lift middle button to arc */
+}
+
+#btn-shoot {
+    margin-bottom: 10px;
+    margin-left: 5px;
+    /* Slightly separate the FIRE button */
 }
 
 .action-btn:active {
@@ -412,9 +440,11 @@ canvas {
 .shoot-btn {
     border-color: var(--secondary);
     color: var(--secondary);
-    width: 64px;
-    height: 64px;
-    font-size: 13px;
+    width: 85px;
+    /* Increased from 64px */
+    height: 85px;
+    font-size: 16px;
+    /* Increased */
     font-weight: 900;
 }
 
@@ -648,30 +678,47 @@ canvas {
 /* Small screen general (phones in landscape) */
 @media (max-height: 400px) {
     #mobile-controls {
-        padding: 0 6px 2px 6px;
+        padding: 0 10px 10px 10px;
     }
 
     .joy-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 14px;
-        border-width: 1.5px;
+        width: 55px;
+        /* Dramatically increased from tiny 38px */
+        height: 55px;
+        font-size: 16px;
+        border-width: 2px;
     }
 
     .action-btn {
-        width: 42px;
-        height: 42px;
-        font-size: 9px;
+        width: 60px;
+        /* Dramatically increased from tiny 42px */
+        height: 60px;
+        font-size: 12px;
     }
 
     .shoot-btn {
-        width: 48px;
-        height: 48px;
-        font-size: 11px;
+        width: 75px;
+        /* Dramatically increased from tiny 48px */
+        height: 75px;
+        font-size: 14px;
+    }
+
+    #btn-dash {
+        margin-bottom: 12px;
+    }
+
+    #btn-shoot {
+        margin-bottom: 6px;
     }
 
     .control-group {
-        gap: 4px;
+        gap: 8px;
+        /* Better thumb spacing */
+    }
+
+    .left-group {
+        gap: 15px;
+        /* Avoid misclicks between L/R */
     }
 
     .hud-top {
