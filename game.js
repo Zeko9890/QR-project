@@ -198,7 +198,11 @@ const isMobile = isTouchDevice && (window.innerWidth < 1024 || window.innerHeigh
 
 // Force landscape orientation
 if (isMobile && screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock('landscape').catch(() => { });
+    try {
+        screen.orientation.lock('landscape').catch(() => { });
+    } catch (e) {
+        console.warn('Orientation lock failed:', e);
+    }
 }
 
 // Performance budgets for mobile
@@ -280,8 +284,16 @@ resizeCanvas();
 // --- 5. AUDIO SYNTHESIZER ---
 let audioCtx;
 const initAudioSystem = () => {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    try {
+        if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    } catch (e) {
+        console.warn('Audio system failed to initialize:', e);
+    }
 };
 
 /**
