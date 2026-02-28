@@ -325,3 +325,146 @@ canvas {
 }
 
 /* HUD Polish */
+
+/* Mobile Controls */
+#mobile-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    pointer-events: auto;
+    z-index: 100;
+}
+
+.control-group {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.joy-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(26, 26, 26, 0.8);
+    border: 3px solid var(--primary);
+    color: var(--primary);
+    font-size: 24px;
+    font-weight: 900;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: all 0.2s ease;
+    touch-action: none;
+    user-select: none;
+}
+
+.joy-btn:active {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 25px var(--primary);
+    transform: scale(0.9);
+}
+
+.action-btn {
+    width: 90px;
+    height: 90px;
+    font-size: 16px;
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.action-btn:active {
+    background: var(--accent);
+    box-shadow: 0 0 25px var(--accent);
+}
+
+.shoot-btn {
+    border-color: var(--secondary);
+    color: var(--secondary);
+    width: 110px;
+    height: 110px;
+    font-size: 20px;
+}
+
+.shoot-btn:active {
+    background: var(--secondary);
+    box-shadow: 0 0 35px var(--secondary);
+}
+
+/* Media Queries for Mobile Responsiveness */
+@media (max-width: 900px) {
+    #ui-layer {
+        padding: 15px;
+    }
+
+    .hud-top {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .stats-panel {
+        padding: 8px 12px;
+        min-width: 120px;
+    }
+
+    .stat-label {
+        font-size: 9px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .health-bar-container {
+        width: 150px;
+        height: 8px;
+    }
+
+    .sync-bar-container {
+        width: 120px;
+        height: 6px;
+    }
+
+    #weapon-name {
+        font-size: 14px;
+    }
+
+    #mobile-controls {
+        display: flex !important;
+    }
+
+    .instructions {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    #mobile-controls {
+        padding: 0 20px;
+        bottom: 10px;
+    }
+
+    .joy-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 18px;
+    }
+
+    .action-btn {
+        width: 70px;
+        height: 70px;
+        font-size: 12px;
+    }
+
+    .shoot-btn {
+        width: 85px;
+        height: 85px;
+        font-size: 16px;
+    }
+}

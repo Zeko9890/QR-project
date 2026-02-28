@@ -37,6 +37,12 @@ const bossHealthFill = document.getElementById('boss-health-fill');
 const syncFill = document.getElementById('sync-fill');
 const uiLayer = document.getElementById('ui-layer');
 const distanceEl = document.getElementById('distance');
+const mobileControls = document.getElementById('mobile-controls');
+const btnLeft = document.getElementById('btn-left');
+const btnRight = document.getElementById('btn-right');
+const btnJump = document.getElementById('btn-jump');
+const btnDash = document.getElementById('btn-dash');
+const btnShoot = document.getElementById('btn-shoot');
 
 // --- 2. GLOBAL DESIGN TOKENS (STRICT MATTE) ---
 const COLORS = {
@@ -174,6 +180,46 @@ window.addEventListener('mousemove', (e) => {
 });
 window.addEventListener('mousedown', () => mouse.down = true);
 window.addEventListener('mouseup', () => mouse.down = false);
+
+// --- 4.5 MOBILE TOUCH MANAGEMENT ---
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+if (isTouchDevice) {
+    mobileControls.classList.remove('hidden');
+
+    // Directional
+    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowLeft'] = true; });
+    btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowLeft'] = false; });
+    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowRight'] = true; });
+    btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowRight'] = false; });
+
+    // Actions
+    btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); keys['Space'] = true; });
+    btnJump.addEventListener('touchend', (e) => { e.preventDefault(); keys['Space'] = false; });
+    btnDash.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ShiftLeft'] = true; });
+    btnDash.addEventListener('touchend', (e) => { e.preventDefault(); keys['ShiftLeft'] = false; });
+
+    // Shoot
+    btnShoot.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        mouse.down = true;
+        // Auto-aim if no mouse movement
+        if (mouse.x === 0 && mouse.y === 0) {
+            mouse.x = canvas.width * 0.8; // Default aim forward
+            mouse.y = canvas.height * 0.5;
+        }
+    });
+    btnShoot.addEventListener('touchend', (e) => { e.preventDefault(); mouse.down = false; });
+
+    // Touch Move for Aiming
+    window.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = touch.clientX - rect.left;
+            mouse.y = touch.clientY - rect.top;
+        }
+    }, { passive: false });
+}
 
 /**
  * Responsive Resize Utility
@@ -1548,6 +1594,8 @@ function rebootSystem() {
     // Init Weather
     weatherSystems = [];
     for (let i = 0; i < 100; i++) weatherSystems.push(new RainDrop());
+
+    if (isTouchDevice) mobileControls.classList.remove('hidden');
 }
 
 function initiateSystemHalt() {
@@ -1555,6 +1603,7 @@ function initiateSystemHalt() {
     finalScoreEl.innerText = score.toString().padStart(6, '0');
     gameOverScreen.classList.remove('hidden');
     document.body.classList.remove('danger');
+    if (isTouchDevice) mobileControls.classList.add('hidden');
 }
 
 /**

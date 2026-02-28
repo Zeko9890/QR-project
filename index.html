@@ -3,7 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>CYBERSTRIKE: OVERDRIVE</title>
     <meta name="description"
         content="A high-octane arcade run-and-gun platformer with neon graphics and addictive gameplay.">
@@ -39,6 +42,19 @@
                 <div class="stats-panel">
                     <span class="stat-label">Sector Distance</span>
                     <div id="distance" class="stat-value">0m</div>
+                </div>
+            </div>
+
+            <!-- Mobile Controls -->
+            <div id="mobile-controls" class="hidden">
+                <div class="control-group left-group">
+                    <button id="btn-left" class="joy-btn">←</button>
+                    <button id="btn-right" class="joy-btn">→</button>
+                </div>
+                <div class="control-group right-group">
+                    <button id="btn-jump" class="joy-btn action-btn">JUMP</button>
+                    <button id="btn-dash" class="joy-btn action-btn">DASH</button>
+                    <button id="btn-shoot" class="joy-btn action-btn shoot-btn">FIRE</button>
                 </div>
             </div>
 
