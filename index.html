@@ -7,6 +7,8 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="screen-orientation" content="landscape">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>CYBERSTRIKE: OVERDRIVE</title>
     <meta name="description"
         content="A high-octane arcade run-and-gun platformer with neon graphics and addictive gameplay.">
@@ -14,23 +16,29 @@
 </head>
 
 <body>
+    <!-- Landscape rotation prompt -->
+    <div id="rotate-overlay">
+        <div class="rotate-icon">📱↻</div>
+        <div class="rotate-text">Rotate your device to landscape</div>
+    </div>
+
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
 
         <div id="ui-layer">
             <div class="hud-top">
                 <div class="stats-panel">
-                    <span class="stat-label">System Integrity</span>
+                    <span class="stat-label">Integrity</span>
                     <div class="health-bar-container">
                         <div id="health-fill"></div>
                     </div>
                 </div>
                 <div class="stats-panel">
-                    <span class="stat-label">Neural Score</span>
+                    <span class="stat-label">Score</span>
                     <div id="score" class="stat-value">000000</div>
                 </div>
                 <div class="stats-panel weapon-info">
-                    <span class="stat-label">Active Payload</span>
+                    <span class="stat-label">Payload</span>
                     <div id="weapon-name">Standard Pulse</div>
                 </div>
                 <div class="stats-panel">
@@ -40,7 +48,7 @@
                     </div>
                 </div>
                 <div class="stats-panel">
-                    <span class="stat-label">Sector Distance</span>
+                    <span class="stat-label">Distance</span>
                     <div id="distance" class="stat-value">0m</div>
                 </div>
             </div>
@@ -48,12 +56,12 @@
             <!-- Mobile Controls -->
             <div id="mobile-controls" class="hidden">
                 <div class="control-group left-group">
-                    <button id="btn-left" class="joy-btn">←</button>
-                    <button id="btn-right" class="joy-btn">→</button>
+                    <button id="btn-left" class="joy-btn">◀</button>
+                    <button id="btn-right" class="joy-btn">▶</button>
                 </div>
                 <div class="control-group right-group">
-                    <button id="btn-jump" class="joy-btn action-btn">JUMP</button>
-                    <button id="btn-dash" class="joy-btn action-btn">DASH</button>
+                    <button id="btn-jump" class="joy-btn action-btn">JMP</button>
+                    <button id="btn-dash" class="joy-btn action-btn">DSH</button>
                     <button id="btn-shoot" class="joy-btn action-btn shoot-btn">FIRE</button>
                 </div>
             </div>
@@ -62,9 +70,9 @@
             <div id="boss-hud" class="hidden"
                 style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); width: 60%; pointer-events: none;">
                 <div class="stat-label" style="text-align: center; margin-bottom: 5px;">Boss Presence Detected</div>
-                <div class="health-bar-container" style="width: 100%; height: 20px; border-color: var(--secondary);">
+                <div class="health-bar-container" style="width: 100%; height: 16px; border-color: var(--secondary);">
                     <div id="boss-health-fill"
-                        style="width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff007a); box-shadow: 0 0 20px #ff0000;">
+                        style="width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff007a);">
                     </div>
                 </div>
             </div>
@@ -84,7 +92,7 @@
 
         <div id="game-over-screen" class="overlay hidden">
             <h1 class="game-title">SYSTEM HALT</h1>
-            <div class="stats-panel" style="margin-bottom: 30px;">
+            <div class="stats-panel" style="margin-bottom: 20px;">
                 <span class="stat-label">Final Score</span>
                 <div id="final-score" class="stat-value">000000</div>
             </div>

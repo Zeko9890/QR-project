@@ -3,8 +3,9 @@
  * CYBERSTRIKE: OVERDRIVE - TITAN EDITION (ULTIMATE)
  * ============================================================================
  * 
- * VERSION: 7.0 (PUBLISH MASTER)
- * AESTHETIC: INDUSTRIAL MATTE 
+ * VERSION: 8.0 (PUBLISH FINAL)
+ * AESTHETIC: INDUSTRIAL MATTE
+ * MOBILE: LANDSCAPE-OPTIMIZED WITH PERFORMANCE TUNING
  * 
  * [ARCHITECTURE OVERVIEW]
  * 1. CORE ENGINE: Handles the main requestAnimationFrame loop and high-level states.
@@ -181,39 +182,83 @@ window.addEventListener('mousemove', (e) => {
 window.addEventListener('mousedown', () => mouse.down = true);
 window.addEventListener('mouseup', () => mouse.down = false);
 
+// Clear all inputs on focus loss to prevent stuck movement
+function clearAllInputs() {
+    Object.keys(keys).forEach(k => keys[k] = false);
+    mouse.down = false;
+}
+window.addEventListener('blur', clearAllInputs);
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearAllInputs();
+});
+
 // --- 4.5 MOBILE TOUCH MANAGEMENT ---
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const isMobile = isTouchDevice && (window.innerWidth < 1024 || window.innerHeight < 600);
+
+// Force landscape orientation
+if (isMobile && screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(() => { });
+}
+
+// Performance budgets for mobile
+const MAX_PARTICLES = isMobile ? 80 : 250;
+const MAX_BULLETS = isMobile ? 30 : 60;
+const RAIN_COUNT = isMobile ? 30 : 100;
+const SCANLINES_ENABLED = !isMobile;
 if (isTouchDevice) {
     mobileControls.classList.remove('hidden');
 
+    // Helper: bind touch start/end/cancel for a button
+    function bindTouch(btn, onDown, onUp) {
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); onDown(); }, { passive: false });
+        btn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); onUp(); }, { passive: false });
+        btn.addEventListener('touchcancel', (e) => { e.preventDefault(); onUp(); }, { passive: false });
+    }
+
     // Directional
-    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowLeft'] = true; });
-    btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowLeft'] = false; });
-    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowRight'] = true; });
-    btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowRight'] = false; });
+    bindTouch(btnLeft, () => { keys['ArrowLeft'] = true; }, () => { keys['ArrowLeft'] = false; });
+    bindTouch(btnRight, () => { keys['ArrowRight'] = true; }, () => { keys['ArrowRight'] = false; });
 
     // Actions
-    btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); keys['Space'] = true; });
-    btnJump.addEventListener('touchend', (e) => { e.preventDefault(); keys['Space'] = false; });
-    btnDash.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ShiftLeft'] = true; });
-    btnDash.addEventListener('touchend', (e) => { e.preventDefault(); keys['ShiftLeft'] = false; });
+    bindTouch(btnJump, () => { keys['Space'] = true; }, () => { keys['Space'] = false; });
+    bindTouch(btnDash, () => { keys['ShiftLeft'] = true; }, () => { keys['ShiftLeft'] = false; });
 
     // Shoot
-    btnShoot.addEventListener('touchstart', (e) => {
-        e.preventDefault();
+    bindTouch(btnShoot, () => {
         mouse.down = true;
-        // Auto-aim if no mouse movement
+        // Auto-aim forward if no prior mouse movement
         if (mouse.x === 0 && mouse.y === 0) {
-            mouse.x = canvas.width * 0.8; // Default aim forward
+            mouse.x = canvas.width * 0.8;
             mouse.y = canvas.height * 0.5;
         }
+    }, () => {
+        mouse.down = false;
     });
-    btnShoot.addEventListener('touchend', (e) => { e.preventDefault(); mouse.down = false; });
 
-    // Touch Move for Aiming
+    // Global safety: if ALL touches end, force-clear all input flags.
+    // This prevents 'stuck' keys when fingers slide off buttons.
+    window.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+            keys['ArrowLeft'] = false;
+            keys['ArrowRight'] = false;
+            keys['Space'] = false;
+            keys['ShiftLeft'] = false;
+            mouse.down = false;
+        }
+    }, { passive: true });
+    window.addEventListener('touchcancel', () => {
+        keys['ArrowLeft'] = false;
+        keys['ArrowRight'] = false;
+        keys['Space'] = false;
+        keys['ShiftLeft'] = false;
+        mouse.down = false;
+    }, { passive: true });
+
+    // Touch Move for Aiming (use last touch, not first, to avoid hijack)
     window.addEventListener('touchmove', (e) => {
         if (e.touches.length > 0) {
-            const touch = e.touches[0];
+            const touch = e.touches[e.touches.length - 1];
             const rect = canvas.getBoundingClientRect();
             mouse.x = touch.clientX - rect.left;
             mouse.y = touch.clientY - rect.top;
@@ -347,7 +392,11 @@ class ParticleSystem {
  * Global Effect Multi-Spawn
  */
 function emitParticles(x, y, variant = 'NORMAL', color = COLORS.primary, count = 10, force = 200) {
-    for (let i = 0; i < count; i++) {
+    // Throttle particles on mobile
+    const actualCount = isMobile ? Math.ceil(count * 0.4) : count;
+    if (particles.length >= MAX_PARTICLES) return;
+    for (let i = 0; i < actualCount; i++) {
+        if (particles.length >= MAX_PARTICLES) break;
         const ang = Math.random() * Math.PI * 2;
         const vel = random(force * 0.4, force);
         if (variant === 'NORMAL') {
@@ -384,8 +433,9 @@ class Projectile {
         this.y += this.vy * dt;
         this.activeTime -= dt;
 
-        // Visual trailing (edged sparks)
-        if (Math.random() > 0.7) {
+        // Visual trailing (edged sparks) - reduced on mobile
+        const trailChance = isMobile ? 0.92 : 0.7;
+        if (Math.random() > trailChance && particles.length < MAX_PARTICLES) {
             particles.push(new ParticleSystem(this.x, this.y, this.color, 2, random(-20, 20), random(-20, 20), 0.3, 'SPARK'));
         }
     }
@@ -394,8 +444,10 @@ class Projectile {
         ctx.translate(this.x - camera.x, this.y - camera.y);
         ctx.rotate(this.rotation);
 
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
+        if (!isMobile) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+        }
 
         if (this.type === 'HEAVY') {
             // "Heavy Slug" - Sharp edge teardrop
@@ -504,7 +556,7 @@ class PlayerTitan {
 
         // --- Jump Responsiveness ---
         this.jumpBuffer = 0;      // Window to press jump before landing
-        this.coyoteTime = 0.15;   // Window to jump after leaving platform
+        this.coyoteTime = 0;      // Window to jump after leaving platform (starts at 0, set on landing)
         this.jumpInputLock = false;
         this.glitchIntensity = 0;
         this.muzzleFlash = 0;
@@ -655,7 +707,8 @@ class PlayerTitan {
         let isGrounded = false;
         const collisionTargets = [...platforms, ...destructibles];
 
-        collisionTargets.forEach(p => {
+        for (let ci = 0; ci < collisionTargets.length; ci++) {
+            const p = collisionTargets[ci];
             if (this.x < p.x + p.w && this.x + this.w > p.x &&
                 this.y < p.y + p.h && this.y + this.h > p.y) {
 
@@ -670,33 +723,38 @@ class PlayerTitan {
                 const combinedW = (this.w + p.w) / 2;
                 const combinedH = (this.h + p.h) / 2;
 
-                const wy = combinedW * dy;
-                const hx = combinedH * dx;
+                // Calculate overlap depths for proper resolution
+                const overlapX = combinedW - Math.abs(dx);
+                const overlapY = combinedH - Math.abs(dy);
 
-                if (wy > hx) {
-                    if (wy > -hx) { // FLOOR IMPACT
+                // Use minimum penetration axis to resolve
+                if (overlapX < overlapY) {
+                    // Horizontal resolution (side collision)
+                    if (dx < 0) {
+                        this.x = p.x - this.w - 1; // Nudge out with 1px gap
+                    } else {
+                        this.x = p.x + p.w + 1;
+                    }
+                    // Don't zero velocity on sides - allows sliding
+                } else {
+                    // Vertical resolution
+                    if (dy < 0) {
+                        // CEILING IMPACT (player below platform bottom)
                         if (this.vy < 0) this.vy = 0;
                         this.y = p.y + p.h;
-                    } else { // LEFT SIDE IMPACT
-                        this.vx = 0;
-                        this.x = p.x - this.w;
-                    }
-                } else {
-                    if (wy > -hx) { // RIGHT SIDE IMPACT
-                        this.vx = 0;
-                        this.x = p.x + p.w;
-                    } else { // TOP SURFACE IMPACT
-                        if (this.vy >= 0) { // Catch landing even if velocity is zero (standing)
+                    } else {
+                        // TOP SURFACE IMPACT (landing)
+                        if (this.vy >= 0) {
                             this.vy = 0;
                             this.y = p.y - this.h;
                             this.jumpCount = 0;
-                            this.coyoteTime = 0.15; // Extended coyote time
+                            this.coyoteTime = 0.15;
                             isGrounded = true;
                         }
                     }
                 }
             }
-        });
+        }
         return isGrounded;
     }
 
@@ -827,8 +885,8 @@ class PlayerTitan {
 
         // --- Character Sprite / Fallback ---
         if (IMAGES_LOADED.player) {
-            // Weapon level aura (Radiant)
-            if (this.weaponLevel > 1) {
+            // Weapon level aura (Radiant) - skip shadowBlur on mobile
+            if (this.weaponLevel > 1 && !isMobile) {
                 ctx.save();
                 ctx.globalAlpha = 0.15 + pulse(0.5, 0.01) * 0.1;
                 ctx.shadowBlur = 15 * this.weaponLevel;
@@ -837,12 +895,8 @@ class PlayerTitan {
                 ctx.restore();
             }
 
-            // Main Sprite with Edge Lighting
-            ctx.save();
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = 'rgba(0, 229, 255, 0.5)';
+            // Main Sprite
             ctx.drawImage(ASSETS.player, 0, 0, this.w, this.h);
-            ctx.restore();
 
             // Reactive highlight
             ctx.globalCompositeOperation = 'source-atop';
@@ -877,8 +931,10 @@ class PlayerTitan {
         ctx.fillRect(targetSide > 0 ? 12 : 2, 12, 18, 8);
 
         ctx.fillStyle = COLORS.primary;
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = COLORS.primary;
+        if (!isMobile) {
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = COLORS.primary;
+        }
         ctx.fillRect(targetSide > 0 ? 18 : 6, 14, 10, 4);
         ctx.shadowBlur = 0;
 
@@ -925,8 +981,10 @@ class PlayerTitan {
         // Energy Core (Pulsing)
         const coreSize = (6 + (this.weaponLevel * 2)) + Math.sin(Date.now() * 0.01) * 2;
         ctx.fillStyle = COLORS.white;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = COLORS.primary;
+        if (!isMobile) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = COLORS.primary;
+        }
         ctx.beginPath();
         ctx.arc(this.w / 2, 30, coreSize / 2, 0, Math.PI * 2);
         ctx.fill();
@@ -1033,9 +1091,11 @@ class HostileUnit {
         ctx.translate(-this.w / 2, -this.h / 2);
 
         if (IMAGES_LOADED.enemy) {
-            // Shadow Glow
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = COLORS.enemy;
+            // Shadow Glow (skip on mobile)
+            if (!isMobile) {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = COLORS.enemy;
+            }
             ctx.drawImage(ASSETS.enemy, 0, 0, this.w, this.h);
             ctx.shadowBlur = 0;
 
@@ -1082,8 +1142,10 @@ class HostileUnit {
 
         // Common Hostile Visor
         ctx.fillStyle = COLORS.enemy;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = COLORS.enemy;
+        if (!isMobile) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = COLORS.enemy;
+        }
         ctx.fillRect(4, 10, this.w - 8, 4);
         ctx.shadowBlur = 0;
 
@@ -1197,8 +1259,10 @@ class TitanBoss {
         ctx.translate(center.x, center.y);
         ctx.rotate(Date.now() * 0.0005);
 
-        ctx.shadowBlur = (50 + (this.pLevel * 20)) * pulseVal;
-        ctx.shadowColor = levelColor;
+        if (!isMobile) {
+            ctx.shadowBlur = (50 + (this.pLevel * 20)) * pulseVal;
+            ctx.shadowColor = levelColor;
+        }
 
         if (IMAGES_LOADED.boss) {
             ctx.drawImage(ASSETS.boss, -this.w / 2, -this.h / 2, this.w, this.h);
@@ -1383,26 +1447,32 @@ class SolidSurface {
         this.color = zone % 2 === 0 ? COLORS.platformAlt : COLORS.platform;
     }
     draw() {
-        ctx.save();
+        const dx = this.x - camera.x;
+        const dy = this.y - camera.y;
+        // Skip if off screen
+        if (dx + this.w < 0 || dx > canvas.width || dy + this.h < 0 || dy > canvas.height) return;
+
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x - camera.x, this.y - camera.y, this.w, this.h);
+        ctx.fillRect(dx, dy, this.w, this.h);
 
-        // Neon Glow Edge
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = this.color;
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(this.x - camera.x, this.y - camera.y, this.w, this.h);
-        ctx.shadowBlur = 0;
+        // Edge stroke (skip shadowBlur on mobile)
+        if (!isMobile) {
+            ctx.save();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(dx, dy, this.w, this.h);
+            ctx.restore();
+        }
 
-        // Subtle top highlighting for volume
+        // Top highlight
         ctx.fillStyle = 'rgba(255,255,255,0.08)';
-        ctx.fillRect(this.x - camera.x, this.y - camera.y, this.w, 4);
+        ctx.fillRect(dx, dy, this.w, 4);
 
         ctx.strokeStyle = '#3d3d3d';
-        ctx.lineWidth = 1; // Thinner, cleaner border
-        ctx.strokeRect(this.x - camera.x, this.y - camera.y, this.w, this.h);
-        ctx.restore();
+        ctx.lineWidth = 1;
+        ctx.strokeRect(dx, dy, this.w, this.h);
     }
 }
 
@@ -1562,7 +1632,7 @@ function activateNeuralOverdrive() {
 function rebootSystem() {
     player = new PlayerTitan();
     platforms = []; particles = []; bullets = []; enemies = []; pickups = [];
-    floatingTexts = [];
+    floatingTexts = []; alerts = []; destructibles = [];
     boss = null;
     score = 0; killScore = 0; comboCount = 0; comboTimer = 0;
     nextPlatformX = 0;
@@ -1570,20 +1640,30 @@ function rebootSystem() {
     nightAlpha = 0;
     neuralSync = 0;
     isNeuralOverdrive = false;
+    overdriveTimer = 0;
+    timeScale = 1.0;
+    screenShake = 0;
+    screenFlash = 0;
+    transitionTimer = 0;
     syncFill.style.width = '0%';
     uiLayer.classList.remove('overdrive-active', 'neural-overdrive');
     lastBossCheckpoint = 0;
     lastDistanceCheckpoint = 0;
     currentZone = 1;
     backgroundObjects = [];
-    urbanParallax = []; // Reset urban background
-    weatherSystems = []; // Reset weather
+    urbanParallax = [];
+    weatherSystems = [];
+
+    // Clear stuck input (critical for mobile restart)
+    Object.keys(keys).forEach(k => keys[k] = false);
+    mouse.down = false;
 
     // UI Hard Reset
     bossHud.classList.add('hidden');
     healthFill.style.width = '100%';
     scoreEl.innerText = "000000";
     if (distanceEl) distanceEl.innerText = "0m";
+    document.body.classList.remove('danger');
 
     // Deployment Platform
     platforms.push(new SolidSurface(0, 500, 1800, 90, 1));
@@ -1591,9 +1671,9 @@ function rebootSystem() {
 
     buildWorldSectors(6000);
 
-    // Init Weather
+    // Init Weather (reduced on mobile for performance)
     weatherSystems = [];
-    for (let i = 0; i < 100; i++) weatherSystems.push(new RainDrop());
+    for (let i = 0; i < RAIN_COUNT; i++) weatherSystems.push(new RainDrop());
 
     if (isTouchDevice) mobileControls.classList.remove('hidden');
 }
@@ -1603,6 +1683,11 @@ function initiateSystemHalt() {
     finalScoreEl.innerText = score.toString().padStart(6, '0');
     gameOverScreen.classList.remove('hidden');
     document.body.classList.remove('danger');
+
+    // Clear all stuck inputs on game over
+    Object.keys(keys).forEach(k => keys[k] = false);
+    mouse.down = false;
+
     if (isTouchDevice) mobileControls.classList.add('hidden');
 }
 
@@ -1618,6 +1703,7 @@ function tick(timestamp) {
     delta *= timeScale;
 
     if (gameState === 'PLAYING') {
+        if (!player) { gameState = 'START'; startScreen.classList.remove('hidden'); return requestAnimationFrame(tick); }
         player.update(delta);
 
         // Smooth Multi-Point Camera
@@ -1626,11 +1712,13 @@ function tick(timestamp) {
         camera.x = lerp(camera.x, camTX, 0.12);
         camera.y = lerp(camera.y, camTY, 0.1);
 
-        // Shake Decay
+        // Shake Decay (clamped)
         if (screenShake > 0) {
+            screenShake = Math.min(screenShake, 60); // Clamp max shake
             camera.x += random(-screenShake, screenShake);
             camera.y += random(-screenShake, screenShake);
             screenShake *= 0.91;
+            if (screenShake < 0.3) screenShake = 0;
         }
 
         // Combat Collision Management
@@ -1762,11 +1850,12 @@ function handleEntityDynamics(delta) {
         }
     }
 
+    // Always track distance, even during boss fights
+    distanceTraveled = Math.max(distanceTraveled, player.x);
+
     if (boss) {
         boss.update(delta, player);
     } else {
-        distanceTraveled = Math.max(distanceTraveled, player.x);
-
         // Boss Spawn Check
         if (distanceTraveled - lastBossCheckpoint > BOSS_INTERVAL) {
             triggerTitanIncursion();
@@ -1849,6 +1938,7 @@ function finalizeEnemy(en, index) {
 }
 
 function finalizeBoss() {
+    if (!boss) return; // Safety guard
     const hugeGain = 15000;
     killScore += hugeGain;
     AudioFX.heavyExplosion();
@@ -1856,9 +1946,6 @@ function finalizeBoss() {
     emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, 'NORMAL', COLORS.boss, 100, 1000);
     emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, 'SMOKE', '#000', 30, 200);
     floatingTexts.push(new FloatingScore(boss.x + boss.w / 2, boss.y, `TITAN ERADICATED +${hugeGain}`, COLORS.primary, 45));
-
-    // JUICE: Visual Feedback Only (No mechanical pause)
-    screenShake = 60;
 
     // DROP BUFFS
     for (let i = 0; i < 3; i++) {
@@ -1870,6 +1957,9 @@ function finalizeBoss() {
         });
     }
 
+    // Advance checkpoint so next boss doesn't trigger immediately
+    lastBossCheckpoint = distanceTraveled;
+
     boss = null;
     bossHud.classList.add('hidden');
     screenShake = 120; // Massive impact
@@ -1878,8 +1968,9 @@ function finalizeBoss() {
 function fulfillPickup(pu, index) {
     pu.isFound = true;
 
-    // Only switch armament if it's a weapon model
-    if (pu.model === 'SPREAD' || pu.model === 'PULSE') {
+    // Only switch armament for actual weapon models
+    const weaponModels = ['SPREAD', 'PULSE', 'PLASMA', 'HEAVY'];
+    if (weaponModels.includes(pu.model)) {
         player.activeArmament = pu.model;
         weaponNameEl.innerText = `${pu.model} ARMAMENT`;
         floatingTexts.push(new FloatingScore(pu.posX, pu.posY, "ARMAMENT UPGRADED", COLORS.accent, 28));
@@ -1893,10 +1984,15 @@ function fulfillPickup(pu, index) {
 
 function garbageCollection() {
     // Aggressive cleanup for performance
-    if (platforms.length > 60) platforms = platforms.filter(p => p.x + p.w > camera.x - 1500);
-    if (pickups.length > 20) pickups = pickups.filter(pu => pu.posX > camera.x - 1500);
-    if (backgroundObjects.length > 30) backgroundObjects = backgroundObjects.filter(bo => bo.x > camera.x - 2000);
-    if (bullets.length > 60) bullets.splice(0, bullets.length - 60); // Aggressive cap
+    const cleanDist = isMobile ? 1000 : 1500;
+    if (platforms.length > 40) platforms = platforms.filter(p => p.x + p.w > camera.x - cleanDist);
+    if (pickups.length > 15) pickups = pickups.filter(pu => pu.posX > camera.x - cleanDist);
+    if (backgroundObjects.length > (isMobile ? 15 : 30)) backgroundObjects = backgroundObjects.filter(bo => bo.x > camera.x - cleanDist);
+    if (enemies.length > (isMobile ? 8 : 20)) enemies = enemies.filter(en => en.x > camera.x - cleanDist);
+    if (bullets.length > MAX_BULLETS) bullets.splice(0, bullets.length - MAX_BULLETS);
+    if (particles.length > MAX_PARTICLES) particles.splice(0, particles.length - MAX_PARTICLES);
+    if (destructibles.length > (isMobile ? 10 : 20)) destructibles = destructibles.filter(db => db.x + db.w > camera.x - cleanDist);
+    if (urbanParallax.length > (isMobile ? 8 : 20)) urbanParallax = urbanParallax.filter(s => s.x + s.w > camera.x - 3000);
 }
 
 function processScoring(delta) {
@@ -1943,18 +2039,21 @@ function drawFrame(delta) {
 
     // NEURAL OVERDRIVE: WIREFRAME DOMINANCE
     if (isNeuralOverdrive) {
+        const gridStep = isMobile ? 80 : 40;
         ctx.strokeStyle = COLORS.primary;
         ctx.lineWidth = 1;
         ctx.globalAlpha = 0.2;
-        for (let i = 0; i < canvas.width; i += 40) {
-            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        ctx.beginPath();
+        for (let i = 0; i < canvas.width; i += gridStep) {
+            ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height);
         }
-        for (let j = 0; j < canvas.height; j += 40) {
-            ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+        for (let j = 0; j < canvas.height; j += gridStep) {
+            ctx.moveTo(0, j); ctx.lineTo(canvas.width, j);
         }
+        ctx.stroke();
         ctx.globalAlpha = 1.0;
 
-        ctx.fillStyle = '#fff'; // Bright contrast for overdrive
+        ctx.fillStyle = '#fff';
         ctx.globalAlpha = 0.05;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1.0;
@@ -2103,20 +2202,19 @@ function drawDamageGlitch() {
     const intensity = player.glitchIntensity;
     ctx.save();
 
-    // Split-scan glitch strips
-    for (let i = 0; i < 12; i++) {
+    // Split-scan glitch strips (fewer on mobile)
+    const stripCount = isMobile ? 4 : 12;
+    for (let i = 0; i < stripCount; i++) {
         const h = random(2, 40);
         const y = random(0, canvas.height);
         const offset = random(-80, 80) * intensity;
-
-        // Draw shifted color strips
         ctx.globalAlpha = intensity * 0.5;
         ctx.fillStyle = i % 2 === 0 ? COLORS.secondary : COLORS.primary;
         ctx.fillRect(offset, y, canvas.width, h);
     }
 
-    // Full screen color inversion flash (very brief)
-    if (Math.random() > 0.9) {
+    // Full screen color inversion flash (very brief) - skip on mobile
+    if (!isMobile && Math.random() > 0.9) {
         ctx.globalCompositeOperation = 'difference';
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2131,20 +2229,26 @@ function drawSpeedVignette() {
     const speedFactor = Math.min(1.0, (speed - 800) / 1200);
     if (speedFactor <= 0) return;
 
-    ctx.save();
-    const grad = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, canvas.width * 0.2,
-        canvas.width / 2, canvas.height / 2, canvas.width * 0.9
-    );
-    grad.addColorStop(0, 'transparent');
-    grad.addColorStop(1, `rgba(0, 229, 255, ${speedFactor * 0.15})`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Skip gradient vignette on mobile for perf
+    if (!isMobile) {
+        ctx.save();
+        const grad = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, canvas.width * 0.2,
+            canvas.width / 2, canvas.height / 2, canvas.width * 0.9
+        );
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(1, `rgba(0, 229, 255, ${speedFactor * 0.15})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
 
-    // Speed Stretched Particles
+    // Speed Stretched Particles (fewer on mobile)
+    const lineCount = isMobile ? 5 : 15;
+    ctx.save();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.lineWidth = 1;
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < lineCount; i++) {
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
         const len = 100 * speedFactor;
@@ -2202,12 +2306,16 @@ function drawPowerUpBars() {
 }
 
 function drawCRTScanlines() {
+    // Skip scanlines entirely on mobile - massive perf savings
+    if (isMobile) return;
+
     ctx.save();
     // Subtle scanline flicker
     const flicker = Math.random() > 0.98 ? 0.08 : 0.04;
     ctx.globalAlpha = flicker;
     ctx.fillStyle = '#000';
-    for (let i = 0; i < canvas.height; i += 3) {
+    // Use larger step for scanlines (6px instead of 3px)
+    for (let i = 0; i < canvas.height; i += 6) {
         ctx.fillRect(0, i, canvas.width, 1);
     }
 
@@ -2217,7 +2325,7 @@ function drawCRTScanlines() {
         canvas.width / 2, canvas.height / 2, canvas.width * 0.9
     );
     vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(20,0,30,0.6)'); // Darker, purple-tinted vignette
+    vig.addColorStop(1, 'rgba(20,0,30,0.6)');
     ctx.fillStyle = vig;
     ctx.globalAlpha = 0.4;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
