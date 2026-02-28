@@ -636,16 +636,40 @@ class PlayerTitan {
 
         this.vy += this.physGravity * dt;
 
-        // Jump Logic (Buffered and Coyote Time)
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
-
         // Smooth visual scaling back to normal
         this.scaleX = lerp(this.scaleX, 1, 0.15);
         this.scaleY = lerp(this.scaleY, 1, 0.15);
 
-        // Core Collision Matrix
-        const onSolid = this.resolveEnvironmentCollisions();
+        const collisionTargets = [...platforms, ...destructibles];
+
+        // 1. X-Axis Movement & Collision
+        this.x += this.vx * dt;
+        collisionTargets.forEach(p => {
+            if (this.x < p.x + p.w && this.x + this.w > p.x &&
+                this.y < p.y + p.h && this.y + this.h > p.y) {
+                if (this.vx > 0) this.x = p.x - this.w;
+                else if (this.vx < 0) this.x = p.x + p.w;
+            }
+        });
+
+        // 2. Y-Axis Movement & Collision
+        this.y += this.vy * dt;
+        let onSolid = false;
+        collisionTargets.forEach(p => {
+            if (this.x < p.x + p.w && this.x + this.w > p.x &&
+                this.y < p.y + p.h && this.y + this.h > p.y) {
+                if (this.vy >= 0) {
+                    this.y = p.y - this.h;
+                    this.vy = 0;
+                    this.jumpCount = 0;
+                    this.coyoteTime = 0.15;
+                    onSolid = true;
+                } else if (this.vy < 0) {
+                    this.y = p.y + p.h;
+                    this.vy = 0;
+                }
+            }
+        });
 
         if (onSolid && !this.groundedState) {
             // Landing Event
@@ -715,61 +739,7 @@ class PlayerTitan {
         emitParticles(this.x + this.w / 2, this.y + this.h / 2, 'NORMAL', COLORS.primary, 12, 180);
     }
 
-    resolveEnvironmentCollisions() {
-        let isGrounded = false;
-        const collisionTargets = [...platforms, ...destructibles];
 
-        for (let ci = 0; ci < collisionTargets.length; ci++) {
-            const p = collisionTargets[ci];
-            if (this.x < p.x + p.w && this.x + this.w > p.x &&
-                this.y < p.y + p.h && this.y + this.h > p.y) {
-
-                const midSelfX = this.x + this.w / 2;
-                const midSelfY = this.y + this.h / 2;
-                const midPlatX = p.x + p.w / 2;
-                const midPlatY = p.y + p.h / 2;
-
-                const dy = midSelfY - midPlatY;
-                const dx = midSelfX - midPlatX;
-
-                const combinedW = (this.w + p.w) / 2;
-                const combinedH = (this.h + p.h) / 2;
-
-                // Calculate overlap depths for proper resolution
-                const overlapX = combinedW - Math.abs(dx);
-                const overlapY = combinedH - Math.abs(dy);
-
-                // Use minimum penetration axis to resolve
-                if (overlapX < overlapY) {
-                    // Horizontal resolution (side collision)
-                    if (dx < 0) {
-                        this.x = p.x - this.w - 1; // Nudge out with 1px gap
-                    } else {
-                        this.x = p.x + p.w + 1;
-                    }
-                    // Don't zero velocity on sides - allows sliding
-                } else {
-                    // Vertical resolution
-                    if (dy < 0) {
-                        // TOP SURFACE IMPACT (landing) 
-                        // dy < 0 means player center is above platform center
-                        if (this.vy >= 0) {
-                            this.vy = 0;
-                            this.y = p.y - this.h;
-                            this.jumpCount = 0;
-                            this.coyoteTime = 0.15;
-                            isGrounded = true;
-                        }
-                    } else {
-                        // CEILING IMPACT (player below platform bottom)
-                        if (this.vy < 0) this.vy = 0;
-                        this.y = p.y + p.h;
-                    }
-                }
-            }
-        }
-        return isGrounded;
-    }
 
     deployArmament() {
         // Weapon Level Scaling
