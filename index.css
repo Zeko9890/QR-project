@@ -25,6 +25,7 @@ body {
     color: #e0e0e0;
     font-family: 'Outfit', sans-serif;
     overflow: hidden;
+    overscroll-behavior: none;
     height: 100%;
     width: 100%;
     position: fixed;

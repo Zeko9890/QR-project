@@ -225,6 +225,21 @@ const SCANLINES_ENABLED = !isMobile;
 if (isTouchDevice) {
     mobileControls.classList.remove('hidden');
 
+    // Prevent default touch behaviors like scrolling, zooming, or pull-to-refresh
+    document.addEventListener('touchstart', (e) => {
+        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+    });
+
     // Helper: bind touch start/end/cancel for a button
     function bindTouch(btn, onDown, onUp) {
         btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); onDown(); }, { passive: false });
