@@ -85,6 +85,7 @@ let neuralSync = 0; // 0 to 100
 let isNeuralOverdrive = false;
 let overdriveTimer = 0;
 let highScore = parseInt(localStorage.getItem('cyberstrike_highscore')) || 0;
+let mobileInputX = 0; // Top-level global for input bridging
 
 // Object Pools
 let platforms = [];
@@ -215,7 +216,6 @@ let fireTouchId = null;
 let isFiringJoy = false;
 let moveTouchId = null;
 let isMovingJoy = false;
-let mobileInputX = 0; // Global bridge for joystick to player
 
 function clearAllInputs() {
     Object.keys(keys).forEach(k => keys[k] = false);
@@ -224,7 +224,7 @@ function clearAllInputs() {
     fireTouchId = null;
     isMovingJoy = false;
     moveTouchId = null;
-    mobileInputX = 0; // Safety reset
+    mobileInputX = 0; // Full reset
 
     const moveInner = document.querySelector('.joy-stick-inner');
     if (moveInner) {
@@ -283,20 +283,20 @@ if (isTouchDevice) {
     const moveJoystick = document.getElementById('move-joystick');
     const moveJoyInner = moveJoystick.querySelector('.joy-stick-inner');
 
-    // Unified Touchmove Handler for better performance
+    // Simplified High-Performance Touchmove Handler
     window.addEventListener('touchmove', (e) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            const t = e.changedTouches[i];
+        // Handle all active touches at once
+        for (let i = 0; i < e.touches.length; i++) {
+            const t = e.touches[i];
 
             if (isMovingJoy && t.identifier === moveTouchId) {
-                e.preventDefault();
                 updateMoveTracking(t);
             }
             if (isFiringJoy && t.identifier === fireTouchId) {
-                e.preventDefault();
                 updateAimTracking(t);
             }
         }
+        if (isMovingJoy || isFiringJoy) e.preventDefault();
     }, { passive: false });
 
     // Cache rects on start to avoid heavy layout thrashing in touchmove
@@ -1620,7 +1620,7 @@ class Skyscraper {
             if (w.on) {
                 // Brighter, warmer windows at night
                 const glow = 0.1 + Math.sin(Date.now() * 0.001 + w.rx) * 0.1;
-                ctx.globalAlpha = nightAlpha > 0.5 ? glow * 2.5 : glow;
+                ctx.globalAlpha = nightAlpha > 0.8 ? glow * 2.5 : glow;
                 ctx.fillStyle = nightAlpha > 0.8 ? '#fff' : COLORS.primary;
                 ctx.fillRect(w.rx, w.ry, 3, 3);
             }
@@ -1895,11 +1895,6 @@ function initiateSystemHalt() {
 function tick(timestamp) {
     let delta = Math.min((timestamp - lastFrameTime) / 1000, 0.05); // More aggressive cap for mobile stability
     lastFrameTime = timestamp;
-
-    // EMERGENCY RESET: If delta is suspicious (serious freeze), clear touches
-    if (delta > 0.15 && isTouchDevice) {
-        clearAllInputs();
-    }
 
     // Apply Time Scale for Matrix Effects
     timeScale = lerp(timeScale, 1.0, 0.05);
@@ -2420,6 +2415,13 @@ function drawFrame(delta) {
     // Damage Glitch Logic
     if (player && player.glitchIntensity > 0) {
         drawDamageGlitch();
+    }
+
+    // --- MOBILE INPUT DEBUG INDICATOR ---
+    if (isTouchDevice && mobileInputX !== 0) {
+        ctx.fillStyle = COLORS.primary;
+        ctx.font = '12px courier';
+        ctx.fillText(`MV: ${mobileInputX > 0 ? ">>" : "<<"}`, 20, 100);
     }
 }
 
