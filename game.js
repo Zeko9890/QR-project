@@ -215,6 +215,7 @@ let fireTouchId = null;
 let isFiringJoy = false;
 let moveTouchId = null;
 let isMovingJoy = false;
+let mobileInputX = 0; // Global bridge for joystick to player
 
 function clearAllInputs() {
     Object.keys(keys).forEach(k => keys[k] = false);
@@ -223,6 +224,7 @@ function clearAllInputs() {
     fireTouchId = null;
     isMovingJoy = false;
     moveTouchId = null;
+    mobileInputX = 0; // Safety reset
 
     const moveInner = document.querySelector('.joy-stick-inner');
     if (moveInner) {
@@ -317,8 +319,7 @@ if (isTouchDevice) {
             if (e.changedTouches[i].identifier === moveTouchId) {
                 isMovingJoy = false;
                 moveTouchId = null;
-                keys['ArrowLeft'] = false;
-                keys['ArrowRight'] = false;
+                mobileInputX = 0; // Stop movement
                 moveJoyInner.style.transition = 'transform 0.2s ease-out';
                 moveJoyInner.style.transform = `translate(0px, 0px)`;
                 break;
@@ -345,16 +346,13 @@ if (isTouchDevice) {
 
         moveJoyInner.style.transform = `translate(${dx}px, ${dy}px)`;
 
-        // Horizontal thresholds for walking
+        // Horizontal thresholds for walking (Direct Injection)
         if (dx < -15) {
-            keys['ArrowLeft'] = true;
-            keys['ArrowRight'] = false;
+            mobileInputX = -1;
         } else if (dx > 15) {
-            keys['ArrowRight'] = true;
-            keys['ArrowLeft'] = false;
+            mobileInputX = 1;
         } else {
-            keys['ArrowLeft'] = false;
-            keys['ArrowRight'] = false;
+            mobileInputX = 0;
         }
     }
 
@@ -779,9 +777,11 @@ class PlayerTitan {
         if (this.isCompromised) return;
 
         // --- X Axis Movement ---
-        let inputX = 0;
-        if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
-        if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
+        let inputX = mobileInputX; // Prioritize joystick
+        if (inputX === 0) { // Fallback to keyboard
+            if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
+        }
 
         // Neural Overdrive Activation
         if (keys['KeyQ']) activateNeuralOverdrive();
