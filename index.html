@@ -51,14 +51,17 @@
                     <span class="stat-label">Distance</span>
                     <div id="distance" class="stat-value">0m</div>
                 </div>
+                <div class="stats-panel" style="pointer-events: auto;">
+                    <button id="pause-btn" class="pause-trigger" title="Pause Game [P]">PAUSE</button>
+                </div>
             </div>
 
             <!-- Mobile Controls -->
             <div id="mobile-controls" class="hidden">
                 <div class="control-group left-group">
-                    <button id="move-joystick" class="joy-btn move-joy">
+                    <div id="move-joystick" class="joy-btn move-joy">
                         <div class="joy-stick-inner"></div>
-                    </button>
+                    </div>
                 </div>
                 <div class="control-group right-group">
                     <button id="btn-jump" class="joy-btn action-btn">JMP</button>
@@ -80,6 +83,17 @@
 
         </div>
 
+        <div id="pause-screen" class="overlay hidden">
+            <h1 class="game-title">SYSTEM PAUSE</h1>
+            <div class="stats-panel" style="margin-bottom: 20px; align-items: center;">
+                <span class="stat-label">Local Record</span>
+                <div id="pause-high-score" class="stat-value">000000</div>
+            </div>
+            <button id="resume-btn" class="btn-start">Resume Link</button>
+            <button id="pause-restart-btn" class="btn-secondary">Reset Sector</button>
+            <button id="pause-home-btn" class="btn-secondary">Exit to Base</button>
+        </div>
+
         <div id="start-screen" class="overlay">
             <h1 class="game-title">CYBERSTRIKE<br>OVERDRIVE</h1>
             <button id="start-btn" class="btn-start">Initiate Protocol</button>
@@ -88,7 +102,9 @@
                 <div class="key-hint"><span class="key">SPACE</span> Jump</div>
                 <div class="key-hint"><span class="key">CLICK</span> Fire</div>
                 <div class="key-hint"><span class="key">SHIFT</span> Dash</div>
+                <div class="key-hint"><span class="key">P</span> Pause</div>
             </div>
+            <div id="start-high-score" class="high-score-display">RECORD: 000000</div>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
@@ -96,6 +112,10 @@
             <div class="stats-panel" style="margin-bottom: 20px;">
                 <span class="stat-label">Final Score</span>
                 <div id="final-score" class="stat-value">000000</div>
+            </div>
+            <div class="stats-panel" style="margin-bottom: 20px; align-items: center;">
+                <span class="stat-label">Peak Performance</span>
+                <div id="over-high-score" class="stat-value">000000</div>
             </div>
             <button id="restart-btn" class="btn-start">Reboot System</button>
             <button id="home-btn" class="btn-secondary">Base Command</button>

@@ -44,6 +44,14 @@ const btnRight = document.getElementById('btn-right');
 const btnJump = document.getElementById('btn-jump');
 const btnDash = document.getElementById('btn-dash');
 const btnShoot = document.getElementById('btn-shoot');
+const pauseBtn = document.getElementById('pause-btn');
+const pauseScreen = document.getElementById('pause-screen');
+const resumeBtn = document.getElementById('resume-btn');
+const pauseRestartBtn = document.getElementById('pause-restart-btn');
+const pauseHomeBtn = document.getElementById('pause-home-btn');
+const startHighScoreEl = document.getElementById('start-high-score');
+const pauseHighScoreEl = document.getElementById('pause-high-score');
+const overHighScoreEl = document.getElementById('over-high-score');
 
 // --- 2. GLOBAL DESIGN TOKENS (STRICT MATTE) ---
 const COLORS = {
@@ -78,6 +86,7 @@ let nightAlpha = 0;
 let neuralSync = 0; // 0 to 100
 let isNeuralOverdrive = false;
 let overdriveTimer = 0;
+let highScore = parseInt(localStorage.getItem('cyberstrike_highscore')) || 0;
 
 // Object Pools
 let platforms = [];
@@ -102,8 +111,9 @@ const ASSETS = {
 ASSETS.player.src = 'player_sprite_v2_1772036355372.png';
 ASSETS.enemy.src = 'drone_sprite_v2_1772036594798.png';
 ASSETS.boss.src = 'boss_sprite_v2_1772036757449.png';
-ASSETS.plasma.src = 'powerup_plasma_core_1772212275022.png';
-ASSETS.cannon.src = 'powerup_heavy_cannon_1772212300648.png';
+// Files don't exist - disabled
+// ASSETS.plasma.src = 'powerup_plasma_core_1772212275022.png';
+// ASSETS.cannon.src = 'powerup_heavy_cannon_1772212300648.png';
 
 const IMAGES_LOADED = { player: false, enemy: false, boss: false, plasma: false, cannon: false };
 /**
@@ -151,7 +161,9 @@ ASSETS.boss.onload = () => {
     IMAGES_LOADED.boss = true;
 };
 ASSETS.plasma.onload = () => { IMAGES_LOADED.plasma = true; };
+ASSETS.plasma.onerror = () => { ASSETS.plasma.broken = true; };
 ASSETS.cannon.onload = () => { IMAGES_LOADED.cannon = true; };
+ASSETS.cannon.onerror = () => { ASSETS.cannon.broken = true; };
 
 // Game Variables
 let player;
@@ -161,9 +173,10 @@ let distanceTraveled = 0;
 let lastBossCheckpoint = 0;
 let lastDistanceCheckpoint = 0;
 let currentZone = 1;
-const BOSS_INTERVAL = 60000; // Appearence every 6km (6000m)
-const CHECKPOINT_INTERVAL = 15000; // Checkpoint every 1.5km (1500m)
-let timeScale = 1.0; // Slow motion handler
+const DEBUG_MODE = false; // Set to false for production
+const BOSS_INTERVAL = DEBUG_MODE ? 5000 : 60000;
+const CHECKPOINT_INTERVAL = DEBUG_MODE ? 2000 : 15000;
+let timeScale = 1.0;
 
 // --- 4. INPUT MANAGEMENT ---
 const keys = {};
@@ -171,6 +184,8 @@ const mouse = { x: 0, y: 0, down: false };
 
 window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
+    if (e.code === 'KeyP') togglePause();
+
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => keys[e.code] = false);
@@ -220,7 +235,6 @@ if (isMobile && screen.orientation && screen.orientation.lock) {
 // Performance budgets for mobile
 const MAX_PARTICLES = isMobile ? 80 : 250;
 const MAX_BULLETS = isMobile ? 30 : 60;
-const RAIN_COUNT = isMobile ? 30 : 100;
 const SCANLINES_ENABLED = !isMobile;
 if (isTouchDevice) {
     mobileControls.classList.remove('hidden');
@@ -318,7 +332,12 @@ if (isTouchDevice) {
     }
 
     // Actions
-    bindTouch(btnJump, () => { keys['Space'] = true; }, () => { keys['Space'] = false; });
+    bindTouch(btnJump, () => {
+        keys['Space'] = true;
+        if (player && !player.isCompromised) {
+            player.jumpBuffer = 0.25;
+        }
+    }, () => { keys['Space'] = false; });
     bindTouch(btnDash, () => { keys['ShiftLeft'] = true; }, () => { keys['ShiftLeft'] = false; });
 
     // TRUE TWIN-STICK FIRE JOYSTICK LOGIC
@@ -482,11 +501,14 @@ class FloatingScore {
     constructor(x, y, text, color, size = 20) {
         this.x = x; this.y = y; this.text = text;
         this.color = color; this.size = size;
-        this.life = 1.0; this.vy = -60;
+        this.life = 1.0;
+        this.vy = -140; // Faster vertical movement
+        this.vx = random(-60, 60); // Drift horizontally to prevent stacking
     }
     update(dt) {
+        this.x += this.vx * dt; // Apply horizontal drift
         this.y += this.vy * dt;
-        this.life -= dt;
+        this.life -= dt * 1.2; // Fade out slightly faster
     }
     draw() {
         ctx.save();
@@ -702,10 +724,11 @@ class PlayerTitan {
             shield: 0
         };
 
-        // --- Jump Responsiveness ---
+        // --- Jump Responsiveness (Enhanced) ---
         this.jumpBuffer = 0;      // Window to press jump before landing
-        this.coyoteTime = 0;      // Window to jump after leaving platform (starts at 0, set on landing)
+        this.coyoteTime = 0;      // Window to jump after leaving platform
         this.jumpInputLock = false;
+        this.maxJumpLimit = 2;    // Double jump capacity
         this.glitchIntensity = 0;
         this.muzzleFlash = 0;
         this.hasArmorShield = false;
@@ -776,12 +799,14 @@ class PlayerTitan {
         this.scaleX = lerp(this.scaleX, 1, 0.15);
         this.scaleY = lerp(this.scaleY, 1, 0.15);
 
-        const collisionTargets = [...platforms, ...destructibles];
+        const visiblePlatforms = platforms.filter(p => p.x < player.x + 800 && p.x + p.w > player.x - 400);
+        const visibleDestructibles = destructibles.filter(d => d.x < player.x + 800 && d.x + d.w > player.x - 400);
+        const collisionTargets = [...visiblePlatforms, ...visibleDestructibles];
         let onSolid = false;
 
         // Sub-step physics to prevent tunneling at low framerates (mobile freeze issue)
         const maxStep = 0.016;
-        let timeRemaining = dt;
+        let timeRemaining = Math.min(dt, 0.05); // Hard cap at 3 sub-steps max
 
         while (timeRemaining > 0) {
             const sDt = Math.min(timeRemaining, maxStep);
@@ -806,16 +831,17 @@ class PlayerTitan {
             this.y += this.vy * sDt;
             let stepGrounded = false;
             collisionTargets.forEach(p => {
-                // Include a 1px margin on X to avoid triggering vertical snaps during wall slides
-                if (this.x < p.x + p.w - 1 && this.x + this.w > p.x + 1 &&
-                    this.y < p.y + p.h && this.y + this.h > p.y) {
+                // Precision landing check with 4px slack
+                if (this.x < p.x + p.w - 2 && this.x + this.w > p.x + 2 &&
+                    this.y < p.y + p.h && this.y + this.h > p.y - 4) {
                     if (this.vy >= 0) {
                         this.y = p.y - this.h;
                         this.vy = 0;
                         this.jumpCount = 0;
-                        this.coyoteTime = 0.15;
+                        this.coyoteTime = 0.35; // Generous coyote window
                         stepGrounded = true;
                     } else if (this.vy < 0) {
+                        // Head hit
                         this.y = p.y + p.h;
                         this.vy = 0;
                     }
@@ -834,14 +860,12 @@ class PlayerTitan {
         this.groundedState = onSolid;
 
         // Jump Logic (Buffered and Coyote Time)
-        if (keys['Space'] || keys['KeyW'] || keys['ArrowUp'] || keys['KeyK']) {
-            if (!this.jumpInputLock) {
-                this.jumpBuffer = 0.25; // Slightly longer buffer for better feel
-                this.jumpInputLock = true;
-            }
-        } else {
-            this.jumpInputLock = false;
+        const jumpPressed = keys['Space'] || keys['KeyW'] || keys['ArrowUp'] || keys['KeyK'];
+
+        if (jumpPressed && !this.jumpInputLock) {
+            this.jumpBuffer = 0.35; // Increased buffer for better pre-landing registration
         }
+        this.jumpInputLock = jumpPressed;
 
         if (this.jumpBuffer > 0) this.jumpBuffer -= dt;
         if (this.coyoteTime > 0) this.coyoteTime -= dt;
@@ -850,6 +874,7 @@ class PlayerTitan {
             this.performJump();
             this.jumpBuffer = 0;
             this.coyoteTime = 0;
+            this.jumpInputLock = true; // Lock AFTER consuming the jump
         }
 
         // Offensive Systems
@@ -1170,8 +1195,8 @@ class HostileUnit {
         this.x = x; this.y = y;
         this.w = 48; this.h = 48; // Scaled up from 42 for better presence
         this.model = model;
-        this.integrity = model === 'SNIPER' ? 30 : (model === 'TANK' ? 120 : 60); // Buffed HP for larger units
-        this.recharge = random(1.5, 4.5);
+        this.integrity = model === 'SNIPER' ? 45 : (model === 'TANK' ? 200 : 90); // Harder enemies
+        this.recharge = random(1.0, 3.5); // Faster firing
         this.oscOffset = Math.random() * 8;
         this.hasExpired = false;
         this.baseX = x;
@@ -1196,7 +1221,7 @@ class HostileUnit {
             const distance = Math.hypot(titan.x - this.x, titan.y - this.y);
             if (distance < 900) {
                 this.executeFireSequence(titan);
-                this.recharge = this.model === 'SNIPER' ? 4.0 : 2.8;
+                this.recharge = this.model === 'SNIPER' ? 3.0 : 1.8; // Aggressive recharge
             }
         }
     }
@@ -1211,8 +1236,8 @@ class HostileUnit {
             // Heavy arcing gravity shell with high damage
             bullets.push(new Projectile(this.x + this.w / 2, this.y + this.h / 2, theta - 0.2, 700, 25, 'ENEMY', COLORS.accent, 'GRAVITY'));
         } else {
-            // Drones fire knockback spikes
-            bullets.push(new Projectile(this.x + this.w / 2, this.y + this.h / 2, theta, 550, 10, 'ENEMY', COLORS.secondary, 'KNOCKBACK'));
+            // Drones fire faster knockback spikes
+            bullets.push(new Projectile(this.x + this.w / 2, this.y + this.h / 2, theta, 750, 12, 'ENEMY', COLORS.secondary, 'KNOCKBACK'));
         }
     }
 
@@ -1301,7 +1326,7 @@ class TitanBoss {
         this.phaseTimer = 0;
         this.arrivalMode = true;
         this.attackPhase = 0;
-        this.maxPhases = Math.min(5, 3 + (pLevel - 1));
+        this.maxPhases = Math.min(6, 4 + (pLevel - 1)); // Increased phase count
         this.cycleTime = 0;
         this.shotCounter = 0;
         this.flashTimer = 0;
@@ -1368,10 +1393,25 @@ class TitanBoss {
             }
         } else if (this.attackPhase === 4) {
             // PLASMA RAIN (Level 3+)
-            if (this.shotCounter > 0.1) {
+            if (this.shotCounter > 0.12) {
                 const ang = Math.PI / 2 + Math.sin(this.phaseTimer * 5) * 0.5;
                 bullets.push(new Projectile(this.x + this.w / 2, this.y + this.h / 2, ang, 600, 10, 'ENEMY', COLORS.primary));
                 this.shotCounter = 0;
+            }
+        } else if (this.attackPhase === 5) {
+            // ELITE DRONE DEPLOYMENT
+            if (this.shotCounter > 1.8) {
+                const spawnX = this.x + random(-150, 150);
+                const spawnY = this.y + random(100, 200);
+                const elite = new HostileUnit(spawnX, spawnY, 'DRONE');
+                elite.integrity *= 1.5; // Boss minions are tougher
+                enemies.push(elite);
+                triggerTransition("TITAN SQUADRON DEPLOYED", COLORS.boss);
+                this.shotCounter = 0;
+
+                // Extra blast for feedback
+                AudioFX.explosion();
+                emitParticles(spawnX, spawnY, 'NORMAL', COLORS.boss, 15, 200);
             }
         }
     }
@@ -1445,19 +1485,13 @@ class TitanBoss {
 
 class PickupAsset {
     static draw(ctx, x, y, model) {
-        let img = null;
-        if (model === 'PLASMA') img = ASSETS.plasma;
-        if (model === 'HEAVY') img = ASSETS.cannon;
-
-        if (img && img.complete) {
-            ctx.drawImage(img, x - 25, y - 25, 50, 50);
-        } else {
-            // Fallback unique vector shapes
-            ctx.fillStyle = model === 'PLASMA' ? '#03a9f4' : '#ff9800';
-            ctx.beginPath();
-            ctx.arc(x, y, 20, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        ctx.fillStyle = model === 'PLASMA' ? '#03a9f4' : '#ff9800';
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 }
 
@@ -1548,34 +1582,7 @@ class Skyscraper {
     }
 }
 
-class RainDrop {
-    constructor() {
-        this.reset();
-        this.y = Math.random() * canvas.height;
-    }
-    reset() {
-        this.x = Math.random() * canvas.width;
-        this.y = -20;
-        this.speed = random(1000, 1500);
-        this.len = random(20, 40);
-    }
-    update(dt) {
-        this.y += this.speed * dt;
-        // Shift rain based on player movement
-        if (player) this.x -= player.vx * 0.0005;
-        if (this.y > canvas.height) this.reset();
-    }
-    draw() {
-        ctx.strokeStyle = COLORS.primary;
-        ctx.globalAlpha = 0.15;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x, this.y + this.len);
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
-    }
-}
+
 
 class SolidSurface {
     constructor(x, y, w, h, zone = 1) {
@@ -1654,8 +1661,11 @@ let destructibles = [];
 /**
  * Procedural Sector Builder
  */
-function buildWorldSectors(rangeX) {
+function buildWorldSectors(rangeX, unlimited = false) {
+    let sectorsBuilt = 0;
     while (nextPlatformX < rangeX) {
+        if (!unlimited && sectorsBuilt >= 12) break;
+        sectorsBuilt++;
         const platW = random(480, 950);
         const lastY = platforms.length > 0 ? platforms[platforms.length - 1].y : canvas.height * 0.6;
 
@@ -1673,8 +1683,8 @@ function buildWorldSectors(rangeX) {
             backgroundObjects.push(new BackgroundScrap(bx, by, bSize, i % 2 === 0 ? COLORS.primary : COLORS.secondary, 0));
         }
 
-        // Hostile Population
-        if (Math.random() > 0.35) {
+        // Hostile Population (Increased Density)
+        if (Math.random() > 0.25) {
             const hModel = Math.random() > 0.85 ? 'SNIPER' : (Math.random() > 0.7 ? 'TANK' : 'DRONE');
             enemies.push(new HostileUnit(platX + platW / 2, platY - 55, hModel));
         }
@@ -1730,8 +1740,8 @@ function reachCheckpoint() {
         navigator.vibrate([100, 50, 100]);
     }
 
-    // Recovery
-    player.hp = Math.min(player.maxHp, player.hp + 25);
+    // Recovery (Reduced for difficulty)
+    player.hp = Math.min(player.maxHp, player.hp + 15);
     healthFill.style.width = `${Math.ceil(player.hp)}%`;
 
     // Visual Feedback
@@ -1752,6 +1762,18 @@ function triggerTransition(text, color) {
     transitionColor = color;
 }
 
+function togglePause() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        pauseScreen.classList.remove('hidden');
+        pauseHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        pauseScreen.classList.add('hidden');
+        lastFrameTime = performance.now(); // Reset delta to prevent huge jumps
+    }
+}
+
 function activateNeuralOverdrive() {
     if (neuralSync < 100 || isNeuralOverdrive) return;
 
@@ -1768,19 +1790,9 @@ function activateNeuralOverdrive() {
 function rebootSystem() {
     player = new PlayerTitan();
     platforms = []; particles = []; bullets = []; enemies = []; pickups = [];
-    floatingTexts = []; destructibles = [];
+    floatingTexts = []; destructibles = []; alerts = [];
     boss = null;
-    score = 0; killScore = 0; comboCount = 0; comboTimer = 0;
-    nextPlatformX = 0;
-    distanceTraveled = 0;
-    nightAlpha = 0;
-    neuralSync = 0;
-    isNeuralOverdrive = false;
-    overdriveTimer = 0;
-    timeScale = 1.0;
-    screenShake = 0;
-    screenFlash = 0;
-    transitionTimer = 0;
+    score = 0; killScore = 0;
     syncFill.style.width = '0%';
     uiLayer.classList.remove('overdrive-active', 'neural-overdrive');
     lastBossCheckpoint = 0;
@@ -1804,18 +1816,22 @@ function rebootSystem() {
     platforms.push(new SolidSurface(0, 500, 1800, 90, 1));
     nextPlatformX = 2000;
 
-    buildWorldSectors(6000);
+    buildWorldSectors(6000, true);
 
-    // Init Weather (reduced on mobile for performance)
+    // Init Weather
     weatherSystems = [];
-    for (let i = 0; i < RAIN_COUNT; i++) weatherSystems.push(new RainDrop());
 
     if (isTouchDevice) mobileControls.classList.remove('hidden');
 }
 
 function initiateSystemHalt() {
     gameState = 'GAMEOVER';
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('cyberstrike_highscore', highScore);
+    }
     finalScoreEl.innerText = score.toString().padStart(6, '0');
+    overHighScoreEl.innerText = highScore.toString().padStart(6, '0');
     gameOverScreen.classList.remove('hidden');
     document.body.classList.remove('danger');
 
@@ -1834,7 +1850,11 @@ function tick(timestamp) {
 
     // Apply Time Scale for Matrix Effects
     timeScale = lerp(timeScale, 1.0, 0.05);
-    delta *= timeScale;
+
+    if (gameState === 'PAUSED') {
+        drawFrame(0);
+        return requestAnimationFrame(tick);
+    }
 
     if (gameState === 'PLAYING') {
         if (!player) { gameState = 'START'; startScreen.classList.remove('hidden'); return requestAnimationFrame(tick); }
@@ -1862,7 +1882,7 @@ function tick(timestamp) {
         handleEntityDynamics(delta);
 
         // Environment Streaming
-        buildWorldSectors(player.x + 8000);
+        buildWorldSectors(player.x + 3000);
 
         // Memory Garbage Collection
         garbageCollection();
@@ -1910,14 +1930,17 @@ function handleBulletCollisions(delta) {
             let hit = false;
             for (let ei = enemies.length - 1; ei >= 0; ei--) {
                 const en = enemies[ei];
+                if (en.hasExpired) continue;
                 if (bRect.x < en.x + en.w && bRect.x + bRect.w > en.x &&
                     bRect.y < en.y + en.h && bRect.y + bRect.h > en.y) {
                     en.integrity -= b.dmg;
+                    en.flashTimer = 1.0;
                     bullets.splice(i, 1);
                     hit = true;
                     emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'BITS', COLORS.enemy, 4, 150);
                     if (en.integrity <= 0) {
-                        finalizeEnemy(en, ei);
+                        en.hasExpired = true;
+                        flagEnemyKill(en);
                     }
                     break;
                 }
@@ -1967,15 +1990,17 @@ function handleBulletCollisions(delta) {
 function handleEntityDynamics(delta) {
     for (let i = enemies.length - 1; i >= 0; i--) {
         const en = enemies[i];
-        en.update(delta, player);
-        if (en.x < camera.x - 1500) {
+        if (en.hasExpired || en.x < player.x - 2500) {
             enemies.splice(i, 1);
             continue;
         }
+        en.update(delta, player);
+        if (en.hasExpired) continue;
         if (!player.isCompromised && Math.hypot(player.x + 16 - (en.x + 24), player.y + 24 - (en.y + 24)) < 45) {
             // NEURAL PHASING: Kill enemies while dashing in Overdrive
             if (isNeuralOverdrive && player.isDashActive) {
-                finalizeEnemy(en, i);
+                en.hasExpired = true;
+                flagEnemyKill(en);
                 score += 1000; // Bonus for phasing
                 emitParticles(en.x, en.y, 'BITS', COLORS.white, 20, 300);
             } else {
@@ -2018,22 +2043,19 @@ function handleEntityDynamics(delta) {
             if (pu.model === 'RAPID_FIRE') {
                 player.powerUps.rapidFire = 8.0;
                 triggerTransition("STRIKE CAPACITY OVERLOAD", COLORS.accent);
-                AudioFX.pickup();
             } else if (pu.model === 'SPEED') {
                 player.powerUps.speedBoost = 8.0;
                 triggerTransition("OVERDRIVE ENGAGED", COLORS.primary);
-                AudioFX.pickup();
             } else if (pu.model === 'SHIELD') {
                 player.powerUps.shield = 10.0;
                 triggerTransition("NEGATION FIELD STABLE", COLORS.primary);
-                AudioFX.pickup();
             } else if (pu.model === 'PLASMA' || pu.model === 'HEAVY') {
                 player.activeArmament = pu.model;
                 weaponNameEl.innerText = `${pu.model} CORE`;
                 triggerTransition(`WEAPON SYSTEM: ${pu.model}`, COLORS.primary);
-                AudioFX.pickup();
             }
             fulfillPickup(pu, i);
+            break;
         }
     }
 
@@ -2046,29 +2068,31 @@ function handleEntityDynamics(delta) {
         if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
     }
     backgroundObjects.forEach(bo => bo.update(delta));
-    weatherSystems.forEach(ws => ws.update(delta));
 
     if (player.glitchIntensity > 0) player.glitchIntensity -= delta * 2;
 }
-
-function finalizeEnemy(en, index) {
-    enemies.splice(index, 1);
+function flagEnemyKill(en) {
     comboCount++;
     comboTimer = 2.5;
     const gain = 600 * (1 + (comboCount * 0.15));
     killScore += Math.floor(gain);
     AudioFX.explosion();
-    emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'NORMAL', COLORS.secondary, 30, 450); // Increased count/force
-    emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'BITS', '#fff', 10, 250); // Extra debris
+    emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'NORMAL', COLORS.secondary, 30, 450);
+    emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'BITS', '#fff', 10, 250);
     floatingTexts.push(new FloatingScore(en.x + en.w / 2, en.y, `+${Math.floor(gain)}`, COLORS.white, 22 + comboCount));
-
-    // Neural Sync Integration
     if (!isNeuralOverdrive) {
         neuralSync = Math.min(100, neuralSync + 2 + (comboCount * 0.5));
         syncFill.style.width = `${neuralSync}%`;
         if (neuralSync >= 100) triggerTransition("NEURAL SYNC CRYSTALLIZED: [Q]", COLORS.primary);
     }
     if (comboCount > 1) floatingTexts.push(new FloatingScore(en.x + en.w / 2, en.y - 40, `X${comboCount} COMBO`, COLORS.primary, 18));
+}
+
+function finalizeEnemy(en, index) {
+    if (!en.hasExpired) {
+        en.hasExpired = true;
+        flagEnemyKill(en);
+    }
 }
 
 function finalizeBoss() {
@@ -2102,30 +2126,38 @@ function finalizeBoss() {
 function fulfillPickup(pu, index) {
     pu.isFound = true;
 
-    // Only switch armament for actual weapon models
-    const weaponModels = ['SPREAD', 'PULSE', 'PLASMA', 'HEAVY'];
+    const weaponModels = ['PULSE', 'PLASMA', 'HEAVY'];
+    const buffModels = ['RAPID_FIRE', 'SPEED', 'SHIELD'];
+
     if (weaponModels.includes(pu.model)) {
         player.activeArmament = pu.model;
         weaponNameEl.innerText = `${pu.model} ARMAMENT`;
         floatingTexts.push(new FloatingScore(pu.posX, pu.posY, "ARMAMENT UPGRADED", COLORS.accent, 28));
-    } else {
+        killScore += 1500;
+    } else if (pu.model === 'SPREAD') {
+        player.activeArmament = 'SPREAD';
+        weaponNameEl.innerText = `SPREAD ARMAMENT`;
+        floatingTexts.push(new FloatingScore(pu.posX, pu.posY, "SPREAD UNLOCKED", COLORS.accent, 28));
+        killScore += 1500;
+    } else if (buffModels.includes(pu.model)) {
+        // Buff already applied in handleEntityDynamics, just score + fx
         floatingTexts.push(new FloatingScore(pu.posX, pu.posY, "SYSTEM OVERCLOCK", COLORS.primary, 28));
+        killScore += 500;
     }
 
-    killScore += 1500;
     AudioFX.pickup();
 }
 
 function garbageCollection() {
     // Aggressive cleanup for performance and freeze prevention
-    const cleanDist = isMobile ? 1000 : 1500;
-    if (platforms.length > 40) platforms = platforms.filter(p => p.x + p.w > camera.x - cleanDist);
-    if (pickups.length > 15) pickups = pickups.filter(pu => pu.posX > camera.x - cleanDist);
-    if (backgroundObjects.length > (isMobile ? 15 : 30)) backgroundObjects = backgroundObjects.filter(bo => bo.x > camera.x - cleanDist);
-    if (enemies.length > (isMobile ? 8 : 20)) enemies = enemies.filter(en => en.x > camera.x - cleanDist);
+    const cleanDist = isMobile ? 1200 : 1800;
+    if (platforms.length > 40) platforms = platforms.filter(p => p.x + p.w > player.x - cleanDist);
+    if (pickups.length > 15) pickups = pickups.filter(pu => pu.posX > player.x - cleanDist);
+    if (backgroundObjects.length > (isMobile ? 15 : 30)) backgroundObjects = backgroundObjects.filter(bo => bo.x > player.x - cleanDist);
+    if (enemies.length > (isMobile ? 8 : 20)) enemies = enemies.filter(en => !en.hasExpired && en.x > player.x - cleanDist);
     if (bullets.length > MAX_BULLETS) bullets.splice(0, bullets.length - MAX_BULLETS);
     if (particles.length > MAX_PARTICLES) particles.splice(0, particles.length - MAX_PARTICLES);
-    if (destructibles.length > (isMobile ? 10 : 20)) destructibles = destructibles.filter(db => db.x + db.w > camera.x - cleanDist);
+    if (destructibles.length > (isMobile ? 10 : 20)) destructibles = destructibles.filter(db => db.x + db.w > player.x - cleanDist);
     if (urbanParallax.length > (isMobile ? 8 : 20)) urbanParallax = urbanParallax.filter(s => s.x + s.w > camera.x - 3000);
     if (floatingTexts.length > 40) floatingTexts.splice(0, floatingTexts.length - 40); // Hard bounds
     if (weatherSystems.length > 200) weatherSystems.splice(0, weatherSystems.length - 200); // Hard bounds
@@ -2265,7 +2297,6 @@ function drawFrame(delta) {
 
     // Urban World
     urbanParallax.forEach(up => up.draw());
-    weatherSystems.forEach(ws => ws.draw());
 
     // Entity Render Stack
     backgroundObjects.forEach(bo => bo.draw());
@@ -2297,7 +2328,7 @@ function drawFrame(delta) {
         }
     });
 
-    enemies.forEach(e => e.draw());
+    enemies.forEach(e => { if (!e.hasExpired) e.draw(); });
     if (boss) boss.draw();
     bullets.forEach(b => b.draw());
     particles.forEach(p => p.draw());
@@ -2551,7 +2582,29 @@ homeBtn.onclick = () => {
     gameState = 'START';
     gameOverScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
+    startHighScoreEl.innerText = `RECORD: ${highScore.toString().padStart(6, '0')}`;
 };
+
+pauseBtn.onpointerdown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    togglePause();
+};
+resumeBtn.onclick = togglePause;
+pauseRestartBtn.onclick = () => {
+    pauseScreen.classList.add('hidden');
+    rebootSystem();
+    gameState = 'PLAYING';
+};
+pauseHomeBtn.onclick = () => {
+    pauseScreen.classList.add('hidden');
+    gameState = 'START';
+    startScreen.classList.remove('hidden');
+    startHighScoreEl.innerText = `RECORD: ${highScore.toString().padStart(6, '0')}`;
+};
+
+// Initial High Score Display
+startHighScoreEl.innerText = `RECORD: ${highScore.toString().padStart(6, '0')}`;
 
 // Initiate Primary Application Thread
 requestAnimationFrame(tick);
