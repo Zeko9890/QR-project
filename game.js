@@ -39,8 +39,6 @@ const syncFill = document.getElementById('sync-fill');
 const uiLayer = document.getElementById('ui-layer');
 const distanceEl = document.getElementById('distance');
 const mobileControls = document.getElementById('mobile-controls');
-const btnLeft = document.getElementById('btn-left');
-const btnRight = document.getElementById('btn-right');
 const btnJump = document.getElementById('btn-jump');
 const btnDash = document.getElementById('btn-dash');
 const btnShoot = document.getElementById('btn-shoot');
@@ -186,6 +184,21 @@ window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     if (e.code === 'KeyP') togglePause();
 
+    // Debug Controls (ALWAYS ON FOR TESTING AS REQUESTED)
+    if (e.code === 'KeyB') triggerTitanIncursion();
+    if (e.code === 'KeyH') player.hp = player.maxHp;
+    if (e.code === 'KeyK' && boss) finalizeBoss();
+    if (e.code === 'KeyL') { // Toggle boss level
+        const lvl = (boss ? boss.pLevel % 5 : 0) + 1;
+        boss = new TitanBoss(player.x + 1200, player.y, lvl);
+        triggerTransition(`TEST MODE: TITAN LEVEL ${lvl} DEPLOYED`, boss.getLevelColor());
+    }
+    if (e.code === 'KeyU') {
+        const types = ['PLASMA', 'HEAVY', 'SPREAD', 'RAPID_FIRE', 'SPEED', 'SHIELD'];
+        const chosen = types[Math.floor(Math.random() * types.length)];
+        pickups.push({ posX: player.x + 100, posY: player.y - 100, model: chosen, isFound: false });
+    }
+
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => keys[e.code] = false);
@@ -268,25 +281,34 @@ if (isTouchDevice) {
     const moveJoystick = document.getElementById('move-joystick');
     const moveJoyInner = moveJoystick.querySelector('.joy-stick-inner');
 
+    // Unified Touchmove Handler for better performance
+    window.addEventListener('touchmove', (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+
+            if (isMovingJoy && t.identifier === moveTouchId) {
+                e.preventDefault();
+                updateMoveTracking(t);
+            }
+            if (isFiringJoy && t.identifier === fireTouchId) {
+                e.preventDefault();
+                updateAimTracking(t);
+            }
+        }
+    }, { passive: false });
+
+    // Cache rects on start to avoid heavy layout thrashing in touchmove
+    let moveJoyRect = null;
+    let fireJoyRect = null;
+
     moveJoystick.addEventListener('touchstart', (e) => {
         e.preventDefault(); e.stopPropagation();
         const touch = e.changedTouches[0];
         moveTouchId = touch.identifier;
         isMovingJoy = true;
-        moveJoyInner.style.transition = 'none'; // Instant response while tracking
+        moveJoyRect = moveJoystick.getBoundingClientRect();
+        moveJoyInner.style.transition = 'none';
         updateMoveTracking(touch);
-    }, { passive: false });
-
-    window.addEventListener('touchmove', (e) => {
-        if (!isMovingJoy) return;
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            const t = e.changedTouches[i];
-            if (t.identifier === moveTouchId) {
-                e.preventDefault();
-                updateMoveTracking(t);
-                break;
-            }
-        }
     }, { passive: false });
 
     const clearMoveJoy = (e) => {
@@ -307,9 +329,9 @@ if (isTouchDevice) {
     window.addEventListener('touchcancel', clearMoveJoy, { passive: false });
 
     function updateMoveTracking(touch) {
-        const rect = moveJoystick.getBoundingClientRect();
-        const joyCenterX = rect.left + rect.width / 2;
-        const joyCenterY = rect.top + rect.height / 2;
+        if (!moveJoyRect) return;
+        const joyCenterX = moveJoyRect.left + moveJoyRect.width / 2;
+        const joyCenterY = moveJoyRect.top + moveJoyRect.height / 2;
 
         let dx = touch.clientX - joyCenterX;
         let dy = touch.clientY - joyCenterY;
@@ -353,20 +375,8 @@ if (isTouchDevice) {
         fireTouchId = touch.identifier;
         isFiringJoy = true;
         mouse.down = true;
+        fireJoyRect = btnShoot.getBoundingClientRect();
         updateAimTracking(touch);
-    }, { passive: false });
-
-    // Global isolated touchmove for the fire joystick
-    window.addEventListener('touchmove', (e) => {
-        if (!isFiringJoy) return;
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            const t = e.changedTouches[i];
-            if (t.identifier === fireTouchId) {
-                e.preventDefault(); // Prevent scroll while aiming
-                updateAimTracking(t);
-                break;
-            }
-        }
     }, { passive: false });
 
     const clearFireJoy = (e) => {
@@ -384,11 +394,10 @@ if (isTouchDevice) {
     window.addEventListener('touchcancel', clearFireJoy, { passive: false });
 
     function updateAimTracking(touch) {
-        if (!player) return; // Guard for dead state
+        if (!player || !fireJoyRect) return; // Guard for dead state
 
-        const rect = btnShoot.getBoundingClientRect();
-        const joyCenterX = rect.left + rect.width / 2;
-        const joyCenterY = rect.top + rect.height / 2;
+        const joyCenterX = fireJoyRect.left + fireJoyRect.width / 2;
+        const joyCenterY = fireJoyRect.top + fireJoyRect.height / 2;
 
         const dx = touch.clientX - joyCenterX;
         const dy = touch.clientY - joyCenterY;
@@ -804,8 +813,8 @@ class PlayerTitan {
         this.scaleX = lerp(this.scaleX, 1, 0.15);
         this.scaleY = lerp(this.scaleY, 1, 0.15);
 
-        const visiblePlatforms = platforms.filter(p => p.x < player.x + 800 && p.x + p.w > player.x - 400);
-        const visibleDestructibles = destructibles.filter(d => d.x < player.x + 800 && d.x + d.w > player.x - 400);
+        const visiblePlatforms = platforms.filter(p => p.x < player.x + 1000 && p.x + p.w > player.x - 600);
+        const visibleDestructibles = destructibles.filter(d => d.x < player.x + 1000 && d.x + d.w > player.x - 600);
         const collisionTargets = [...visiblePlatforms, ...visibleDestructibles];
         let onSolid = false;
 
@@ -1331,7 +1340,7 @@ class TitanBoss {
         this.phaseTimer = 0;
         this.arrivalMode = true;
         this.attackPhase = 0;
-        this.maxPhases = Math.min(6, 4 + (pLevel - 1)); // Increased phase count
+        this.maxPhases = 6; // All bosses use all phases now for better variety
         this.cycleTime = 0;
         this.shotCounter = 0;
         this.flashTimer = 0;
@@ -1458,6 +1467,39 @@ class TitanBoss {
             ctx.arc(0, 0, (100 + this.pLevel * 20) * pulseVal, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        // --- DISTINCT BOSS MODELS BY LEVEL ---
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.6;
+
+        if (this.pLevel === 1) {
+            // "VANGUARD" TYPE: Triangle Shield
+            ctx.beginPath();
+            for (let i = 0; i < 3; i++) {
+                const a = (i * Math.PI * 2 / 3) + Date.now() * 0.002;
+                ctx.lineTo(Math.cos(a) * 140, Math.sin(a) * 140);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        } else if (this.pLevel === 2) {
+            // "CENTURION" TYPE: Twin Rings
+            ctx.beginPath();
+            ctx.arc(0, 0, 130, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.rotate(-Date.now() * 0.004);
+            ctx.strokeRect(-120, -120, 240, 240);
+        } else if (this.pLevel >= 3) {
+            // "OVERLORD" TYPE: Geometric Spike Ring
+            for (let i = 0; i < 8; i++) {
+                const a = (i * Math.PI * 2 / 8) + Date.now() * 0.001;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * 130, Math.sin(a) * 130);
+                ctx.lineTo(Math.cos(a) * 180, Math.sin(a) * 180);
+                ctx.stroke();
+            }
+        }
+        ctx.globalAlpha = 1.0;
         ctx.restore();
 
         // Mechanical Shield Rings (Scales with Level)
@@ -1854,6 +1896,11 @@ function tick(timestamp) {
     let delta = Math.min((timestamp - lastFrameTime) / 1000, 0.05); // More aggressive cap for mobile stability
     lastFrameTime = timestamp;
 
+    // EMERGENCY RESET: If delta is suspicious, clear touches (prevents "ghost" sticking and freezes)
+    if (delta > 0.045 && isTouchDevice) {
+        clearAllInputs();
+    }
+
     // Apply Time Scale for Matrix Effects
     timeScale = lerp(timeScale, 1.0, 0.05);
 
@@ -1888,7 +1935,10 @@ function tick(timestamp) {
         handleEntityDynamics(delta);
 
         // Environment Streaming
-        buildWorldSectors(player.x + 3000);
+        // Environment Streaming (Throttled for mobile health)
+        if (Math.floor(timestamp / 50) % 2 === 0) {
+            buildWorldSectors(player.x + 3000);
+        }
 
         // Memory Garbage Collection (Throttled)
         if (Math.floor(timestamp / 100) % 5 === 0) {
