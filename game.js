@@ -212,7 +212,10 @@ function clearAllInputs() {
     moveTouchId = null;
 
     const moveInner = document.querySelector('.joy-stick-inner');
-    if (moveInner) moveInner.style.transform = 'translate(0px, 0px)';
+    if (moveInner) {
+        moveInner.style.transform = 'translate(0px, 0px)';
+        moveInner.style.transition = 'transform 0.2s ease-out';
+    }
 }
 window.addEventListener('blur', clearAllInputs);
 document.addEventListener('visibilitychange', () => {
@@ -270,6 +273,7 @@ if (isTouchDevice) {
         const touch = e.changedTouches[0];
         moveTouchId = touch.identifier;
         isMovingJoy = true;
+        moveJoyInner.style.transition = 'none'; // Instant response while tracking
         updateMoveTracking(touch);
     }, { passive: false });
 
@@ -293,6 +297,7 @@ if (isTouchDevice) {
                 moveTouchId = null;
                 keys['ArrowLeft'] = false;
                 keys['ArrowRight'] = false;
+                moveJoyInner.style.transition = 'transform 0.2s ease-out';
                 moveJoyInner.style.transform = `translate(0px, 0px)`;
                 break;
             }
@@ -1663,8 +1668,9 @@ let destructibles = [];
  */
 function buildWorldSectors(rangeX, unlimited = false) {
     let sectorsBuilt = 0;
+    const maxSectorsPerFrame = isMobile ? 2 : 8;
     while (nextPlatformX < rangeX) {
-        if (!unlimited && sectorsBuilt >= 12) break;
+        if (!unlimited && sectorsBuilt >= maxSectorsPerFrame) break;
         sectorsBuilt++;
         const platW = random(480, 950);
         const lastY = platforms.length > 0 ? platforms[platforms.length - 1].y : canvas.height * 0.6;
@@ -1845,7 +1851,7 @@ function initiateSystemHalt() {
  * Primary Execution Frame
  */
 function tick(timestamp) {
-    let delta = Math.min((timestamp - lastFrameTime) / 1000, 0.1);
+    let delta = Math.min((timestamp - lastFrameTime) / 1000, 0.05); // More aggressive cap for mobile stability
     lastFrameTime = timestamp;
 
     // Apply Time Scale for Matrix Effects
@@ -1884,8 +1890,10 @@ function tick(timestamp) {
         // Environment Streaming
         buildWorldSectors(player.x + 3000);
 
-        // Memory Garbage Collection
-        garbageCollection();
+        // Memory Garbage Collection (Throttled)
+        if (Math.floor(timestamp / 100) % 5 === 0) {
+            garbageCollection();
+        }
 
         // Global Statistics
         processScoring(delta);
