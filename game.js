@@ -87,6 +87,14 @@ let overdriveTimer = 0;
 let highScore = parseInt(localStorage.getItem('cyberstrike_highscore')) || 0;
 let mobileInputX = 0; // Top-level global for input bridging
 
+// --- Death Animation State ---
+let deathTimer = 0;
+let deathFadeAlpha = 0;
+let deathPlayerVX = 0;
+let deathPlayerVY = 0;
+let deathPlayerSpin = 0;
+const DEATH_DURATION = 2.8; // Total death sequence in seconds
+
 // Object Pools
 let platforms = [];
 let particles = [];
@@ -844,17 +852,20 @@ class PlayerTitan {
             this.y += this.vy * sDt;
             let stepGrounded = false;
             collisionTargets.forEach(p => {
-                // Precision landing check with 4px slack
-                if (this.x < p.x + p.w - 2 && this.x + this.w > p.x + 2 &&
-                    this.y < p.y + p.h && this.y + this.h > p.y - 4) {
-                    if (this.vy >= 0) {
+                // Horizontal overlap check for vertical collision
+                if (this.x < p.x + p.w - 2 && this.x + this.w > p.x + 2) {
+                    // Check for landing (moving down or standing)
+                    if (this.vy >= 0 && this.y + this.h >= p.y - 4 && this.y + this.h <= p.y + 15) {
                         this.y = p.y - this.h;
                         this.vy = 0;
                         this.jumpCount = 0;
-                        this.coyoteTime = 0.35; // Generous coyote window
+                        this.coyoteTime = 0.35;
                         stepGrounded = true;
-                    } else if (this.vy < 0) {
-                        // Head hit
+                    }
+                    // Check for head hit (moving up)
+                    // The y > p.y + p.h - 15 check ensures we only hit the CEILING of the platform, 
+                    // not the floor we are potentially standing on.
+                    else if (this.vy < 0 && this.y < p.y + p.h && this.y > p.y + p.h - 15) {
                         this.y = p.y + p.h;
                         this.vy = 0;
                     }
@@ -1872,20 +1883,60 @@ function rebootSystem() {
 }
 
 function initiateSystemHalt() {
-    gameState = 'GAMEOVER';
+    // Enter DYING state instead of immediate GAMEOVER
+    gameState = 'DYING';
+    deathTimer = 0;
+    deathFadeAlpha = 0;
+
+    // Give the player a dramatic upward pop then let gravity take over
+    deathPlayerVX = player.vx * 0.3 + random(-100, 100);
+    deathPlayerVY = -500; // Pop upward
+    deathPlayerSpin = (Math.random() > 0.5 ? 1 : -1) * random(4, 8);
+
+    // Big death explosion
+    screenShake = 40;
+    screenFlash = 0.8;
+    emitParticles(player.x + player.w / 2, player.y + player.h / 2, 'NORMAL', COLORS.secondary, 50, 600);
+    emitParticles(player.x + player.w / 2, player.y + player.h / 2, 'BITS', '#fff', 20, 300);
+    AudioFX.heavyExplosion();
+
+    // Prepare final scores
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('cyberstrike_highscore', highScore);
     }
     finalScoreEl.innerText = score.toString().padStart(6, '0');
     overHighScoreEl.innerText = highScore.toString().padStart(6, '0');
-    gameOverScreen.classList.remove('hidden');
-    document.body.classList.remove('danger');
+    const unitEl = document.getElementById('unit-status');
+    if (unitEl) {
+        let status = 'COMPROMISED';
+        if (score > 5000) status = 'OPERATIVE';
+        if (score > 15000) status = 'TITAN HUNTER';
+        if (score > 40000) status = 'NEURAL ARCHITECT';
+        if (score > 100000) status = 'OVERDRIVE GOD';
+        unitEl.innerText = status;
+    }
 
-    // Clear all stuck inputs on game over
+    // Clear all stuck inputs
     clearAllInputs();
-
+    document.body.classList.remove('danger');
     if (isTouchDevice) mobileControls.classList.add('hidden');
+}
+
+function finalizeDeathSequence() {
+    gameState = 'GAMEOVER';
+    gameOverScreen.style.opacity = '0';
+    gameOverScreen.classList.remove('hidden');
+    // Smooth fade-in of the game over screen
+    let fadeIn = 0;
+    const fadeInterval = setInterval(() => {
+        fadeIn += 0.04;
+        gameOverScreen.style.opacity = Math.min(fadeIn, 1).toString();
+        if (fadeIn >= 1) {
+            gameOverScreen.style.opacity = '1';
+            clearInterval(fadeInterval);
+        }
+    }, 16);
 }
 
 /**
@@ -1928,7 +1979,6 @@ function tick(timestamp) {
         // Enemy/Boss Systems
         handleEntityDynamics(delta);
 
-        // Environment Streaming
         // Environment Streaming (Throttled for mobile health)
         if (Math.floor(timestamp / 50) % 2 === 0) {
             buildWorldSectors(player.x + 3000);
@@ -1946,6 +1996,60 @@ function tick(timestamp) {
         player.updateVisuals(delta);
 
         if (screenFlash > 0) screenFlash -= delta * 4;
+    }
+
+    // --- DYING STATE: Cinematic Death Sequence ---
+    if (gameState === 'DYING') {
+        const slowDelta = delta * 0.4; // Slow-motion effect
+        deathTimer += delta;
+
+        // Ragdoll physics on the dead player
+        if (player) {
+            deathPlayerVY += 1200 * slowDelta; // Gravity
+            player.x += deathPlayerVX * slowDelta;
+            player.y += deathPlayerVY * slowDelta;
+            player.rotation += deathPlayerSpin * slowDelta;
+            deathPlayerVX *= 0.98; // Air drag
+        }
+
+        // Camera slowly zooms in and follows the falling body
+        if (player) {
+            const camTX = player.x - canvas.width * 0.5 + player.w / 2;
+            const camTY = player.y - canvas.height * 0.4;
+            camera.x = lerp(camera.x, camTX, 0.06);
+            camera.y = lerp(camera.y, camTY, 0.06);
+        }
+
+        // Shake decay during death
+        if (screenShake > 0) {
+            camera.x += random(-screenShake, screenShake);
+            camera.y += random(-screenShake, screenShake);
+            screenShake *= 0.93;
+            if (screenShake < 0.3) screenShake = 0;
+        }
+
+        // Update particles during death
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update(slowDelta);
+            if (particles[i].life <= 0) particles.splice(i, 1);
+        }
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            floatingTexts[i].update(slowDelta);
+            if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+        }
+
+        // Fade to black over time
+        const fadeStart = 0.8; // Start fading at 0.8s
+        if (deathTimer > fadeStart) {
+            deathFadeAlpha = Math.min(1.0, (deathTimer - fadeStart) / (DEATH_DURATION - fadeStart));
+        }
+
+        if (screenFlash > 0) screenFlash -= delta * 3;
+
+        // Sequence complete - transition to game over
+        if (deathTimer >= DEATH_DURATION) {
+            finalizeDeathSequence();
+        }
     }
 
     drawFrame(delta);
@@ -2385,20 +2489,20 @@ function drawFrame(delta) {
     bullets.forEach(b => b.draw());
     particles.forEach(p => p.draw());
 
-    if (gameState === 'PLAYING') player.draw();
+    if (gameState === 'PLAYING' || gameState === 'DYING') player.draw();
 
     // UI HUD Layers (Text drawn on top)
-    drawPowerUpBars();
+    if (gameState !== 'DYING') drawPowerUpBars();
     floatingTexts.forEach(ft => ft.draw());
 
     // Speed & Motion Juice
-    drawSpeedVignette();
+    if (gameState !== 'DYING') drawSpeedVignette();
 
     // Global Screen Flash
     if (screenFlash > 0) {
         ctx.save();
-        ctx.globalAlpha = screenFlash;
-        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = Math.min(screenFlash, 1.0);
+        ctx.fillStyle = gameState === 'DYING' ? '#fff' : '#fff'; // White flash for both
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
     }
@@ -2416,11 +2520,52 @@ function drawFrame(delta) {
         drawDamageGlitch();
     }
 
-    // --- MOBILE INPUT DEBUG INDICATOR ---
-    if (isTouchDevice && mobileInputX !== 0) {
-        ctx.fillStyle = COLORS.primary;
-        ctx.font = '12px courier';
-        ctx.fillText(`MV: ${mobileInputX > 0 ? ">>" : "<<"}`, 20, 100);
+    // --- DEATH FADE OVERLAY ---
+    if (gameState === 'DYING' && deathFadeAlpha > 0) {
+        ctx.save();
+
+        // Red vignette first, then fades to full black
+        const redPhase = Math.min(deathFadeAlpha * 2, 1.0);
+        const blackPhase = Math.max(0, (deathFadeAlpha - 0.4) / 0.6);
+
+        // Red danger vignette
+        if (redPhase > 0 && blackPhase < 1) {
+            const vig = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.1,
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.7
+            );
+            vig.addColorStop(0, 'rgba(0,0,0,0)');
+            vig.addColorStop(1, `rgba(255, 0, 40, ${redPhase * 0.6})`);
+            ctx.fillStyle = vig;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Black fade
+        if (blackPhase > 0) {
+            ctx.globalAlpha = blackPhase;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // "SYSTEM COMPROMISED" text flicker
+        if (deathFadeAlpha > 0.3 && deathFadeAlpha < 0.95) {
+            ctx.globalAlpha = (Math.sin(Date.now() * 0.02) * 0.3 + 0.7) * (1 - blackPhase);
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = COLORS.primary;
+            ctx.font = 'italic 900 48px Outfit';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('SYSTEM COMPROMISED', canvas.width / 2, canvas.height / 2);
+
+            // Glitch offset duplicate
+            ctx.globalAlpha *= 0.4;
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = COLORS.primary;
+            ctx.fillText('SYSTEM COMPROMISED', canvas.width / 2 + random(-6, 6), canvas.height / 2 + random(-3, 3));
+        }
+
+        ctx.restore();
     }
 }
 

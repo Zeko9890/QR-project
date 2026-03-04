@@ -12,6 +12,7 @@
     <title>CYBERSTRIKE: OVERDRIVE</title>
     <meta name="description"
         content="A high-octane arcade run-and-gun platformer with neon graphics and addictive gameplay.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
 </head>
 
@@ -108,17 +109,15 @@
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
-            <h1 class="game-title">SYSTEM HALT</h1>
-            <div class="stats-panel" style="margin-bottom: 20px;">
-                <span class="stat-label">Final Score</span>
-                <div id="final-score" class="stat-value">000000</div>
+            <div class="go-signal">[ SIGNAL_LOST ]</div>
+            <h1 class="go-title">SYSTEM HALT</h1>
+            <div class="go-stat">NEURAL SCORE: <span id="final-score">000000</span></div>
+            <div class="go-stat">PEAK SYNC: <span id="over-high-score">000000</span></div>
+            <div class="go-stat">UNIT STATUS: <span id="unit-status">COMPROMISED</span></div>
+            <div class="go-btn-group">
+                <button id="restart-btn" class="btn-sync">REBOOT SYSTEM</button>
+                <button id="home-btn" class="btn-sync">BASE COMMAND</button>
             </div>
-            <div class="stats-panel" style="margin-bottom: 20px; align-items: center;">
-                <span class="stat-label">Peak Performance</span>
-                <div id="over-high-score" class="stat-value">000000</div>
-            </div>
-            <button id="restart-btn" class="btn-start">Reboot System</button>
-            <button id="home-btn" class="btn-secondary">Base Command</button>
         </div>
     </div>
 
