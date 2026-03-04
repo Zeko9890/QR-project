@@ -259,7 +259,8 @@ if (isTouchDevice) {
 
     // Prevent default touch behaviors like scrolling, zooming, or pull-to-refresh
     document.addEventListener('touchstart', (e) => {
-        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button') &&
+            e.target.id !== 'move-joystick' && !e.target.closest('#move-joystick')) {
             e.preventDefault();
         }
     }, { passive: false });

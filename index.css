@@ -430,7 +430,7 @@ canvas {
     overflow: hidden;
 }
 
-.joy-btn:active:not(.move-joy) {
+button.joy-btn:active:not(.move-joy) {
     background: var(--primary);
     color: #000;
     transform: scale(0.92);
