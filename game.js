@@ -106,6 +106,7 @@ let alerts = [];
 let backgroundObjects = []; // Decorative floating objects
 let weatherSystems = []; // Rain/Embers
 let urbanParallax = []; // Giant Skyscrapers
+let checkpoints = []; // Physical checkpoint walls
 
 // --- 3.5 ASSET LOADER ---
 const ASSETS = {
@@ -179,6 +180,8 @@ let nextPlatformX = 0;
 let distanceTraveled = 0;
 let lastBossCheckpoint = 0;
 let lastDistanceCheckpoint = 0;
+let lastCheckpointSpawnX = 0;
+let lastCheckpointKillScore = 0;
 let currentZone = 1;
 const DEBUG_MODE = false; // Set to false for production
 const BOSS_INTERVAL = DEBUG_MODE ? 5000 : 60000;
@@ -538,6 +541,61 @@ class FloatingScore {
         ctx.fillText(this.text, this.x - camera.x, this.y - camera.y);
         ctx.restore();
     }
+}
+
+class CombatAlert {
+    constructor(text, color, icon = "") {
+        this.text = text;
+        this.color = color;
+        this.icon = icon;
+        this.life = 2.5;
+    }
+    update(dt) {
+        this.life -= dt;
+    }
+    draw(index) {
+        if (this.life <= 0) return;
+        const alpha = Math.min(1.0, this.life * 2);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        const w = 450;
+        const h = 36;
+        const x = (canvas.width - w) / 2;
+        const y = 85 + (index * 42); // Stacked below HUD
+
+        // Background backing
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(x, y, w, h);
+
+        // Accent accents
+        ctx.fillStyle = this.color;
+        ctx.fillRect(x, y, 4, h); // Left bar
+        ctx.fillRect(x + w - 4, y, 4, h); // Right bar
+
+        // Text with icon
+        ctx.font = '900 15px Outfit';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff';
+
+        const displayStr = this.icon ? `${this.icon}  ${this.text.toUpperCase()}  ${this.icon}` : this.text.toUpperCase();
+        ctx.fillText(displayStr, canvas.width / 2, y + h / 2);
+
+        // Tech decorations
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.restore();
+    }
+}
+
+function triggerCombatAlert(text, color, icon = "") {
+    // Only one alert of the same text type at a time
+    if (alerts.some(a => a.text === text)) return;
+    alerts.push(new CombatAlert(text, color, icon));
+    if (alerts.length > 3) alerts.shift();
 }
 
 // --- 7. PARTICLE PHYSICS ---
@@ -1001,7 +1059,7 @@ class PlayerTitan {
         if (this.hasArmorShield && !force) {
             this.hasArmorShield = false;
             this.iFrames = 0.5;
-            triggerTransition("ARMOR PLATING CONSUMED", COLORS.secondary);
+            triggerCombatAlert("ARMOR PLATING CONSUMED", COLORS.secondary, "⚠");
             return;
         }
 
@@ -1676,6 +1734,48 @@ class SolidSurface {
     }
 }
 
+class CheckpointWall {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.w = 30;
+        this.h = canvas.height * 2; // Tall enough to cover vertical space
+        this.isPassed = false;
+    }
+
+    draw() {
+        if (this.isPassed) return;
+        ctx.save();
+        ctx.translate(this.x - camera.x, this.y - camera.y);
+
+        // Holographic gradient
+        const grad = ctx.createLinearGradient(0, -this.h, 0, 0);
+        grad.addColorStop(0, 'rgba(0, 229, 255, 0.0)');
+        grad.addColorStop(0.5, 'rgba(0, 229, 255, 0.3)');
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0.6)');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(-this.w / 2, -this.h, this.w, this.h);
+
+        // Glowing edges
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = COLORS.primary;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-this.w / 2, 0); ctx.lineTo(-this.w / 2, -this.h);
+        ctx.moveTo(this.w / 2, 0); ctx.lineTo(this.w / 2, -this.h);
+        ctx.stroke();
+
+        // Scanning laser band
+        const bandY = -this.h + (Date.now() * 0.4) % this.h;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(-this.w / 2, bandY, this.w, 8);
+
+        ctx.restore();
+    }
+}
+
 class DestructibleBlock {
     constructor(x, y) {
         this.x = x; this.y = y;
@@ -1732,6 +1832,12 @@ function buildWorldSectors(rangeX, unlimited = false) {
         const platY = Math.max(canvas.height * 0.25, Math.min(canvas.height * 0.85, lastY + random(-160, 160)));
 
         platforms.push(new SolidSurface(platX, platY, platW, 45, currentZone));
+
+        // Physical Checkpoint Spawn
+        if (platX > lastCheckpointSpawnX + CHECKPOINT_INTERVAL) {
+            checkpoints.push(new CheckpointWall(platX + platW / 2, platY));
+            lastCheckpointSpawnX = platX;
+        }
 
         // Background floating objects (even under the floor)
         for (let i = 0; i < 3; i++) {
@@ -1790,8 +1896,13 @@ function triggerTitanIncursion() {
     bossHealthFill.style.width = '100%';
 }
 
-function reachCheckpoint() {
+function reachCheckpoint(x, y) {
     lastDistanceCheckpoint = distanceTraveled;
+    lastCheckpointKillScore = killScore;
+
+    // Break wall into particles
+    emitParticles(x, y - 100, 'NORMAL', '#fff', 40, 600);
+    emitParticles(x, y - 50, 'NORMAL', COLORS.primary, 30, 400);
 
     // Vibration
     if ("vibrate" in navigator) {
@@ -1802,11 +1913,10 @@ function reachCheckpoint() {
     player.hp = Math.min(player.maxHp, player.hp + 15);
     healthFill.style.width = `${Math.ceil(player.hp)}%`;
 
-    // Visual Feedback
-    triggerTransition("CHECKPOINT REACHED", COLORS.primary);
     AudioFX.pickup();
 
-    floatingTexts.push(new FloatingScore(player.x, player.y - 100, "SYSTEMS RESTORED", COLORS.primary, 35));
+    // Requested purple drifting notification
+    floatingTexts.push(new FloatingScore(x, y - 150, "CHECKPOINT REACHED", COLORS.accent, 35));
 }
 
 let transitionTimer = 0;
@@ -1840,7 +1950,7 @@ function activateNeuralOverdrive() {
     screenFlash = 1.0;
     screenShake = 60;
     uiLayer.classList.add('overdrive-active', 'neural-overdrive');
-    triggerTransition("NEURAL OVERDRIVE ACTIVE: PHASE MODE", COLORS.primary);
+    triggerCombatAlert("NEURAL OVERDRIVE: TRANSCENDENCE ACTIVE", COLORS.primary, "⚡");
     AudioFX.bossEntry(); // Use a heavy sound
 }
 
@@ -1848,13 +1958,14 @@ function activateNeuralOverdrive() {
 function rebootSystem() {
     player = new PlayerTitan();
     platforms = []; particles = []; bullets = []; enemies = []; pickups = [];
-    floatingTexts = []; destructibles = []; alerts = [];
+    floatingTexts = []; destructibles = []; alerts = []; checkpoints = [];
     boss = null;
     score = 0; killScore = 0;
     syncFill.style.width = '0%';
     uiLayer.classList.remove('overdrive-active', 'neural-overdrive');
     lastBossCheckpoint = 0;
     lastDistanceCheckpoint = 0;
+    lastCheckpointSpawnX = 0;
     currentZone = 1;
     backgroundObjects = [];
     urbanParallax = [];
@@ -1878,6 +1989,51 @@ function rebootSystem() {
 
     // Init Weather
     weatherSystems = [];
+
+    if (isTouchDevice) mobileControls.classList.remove('hidden');
+}
+
+function rebootFromCheckpoint() {
+    if (lastDistanceCheckpoint === 0) {
+        rebootSystem();
+        return;
+    }
+
+    // Restore Player and Stats
+    player = new PlayerTitan();
+    player.x = lastDistanceCheckpoint;
+    player.y = 100; // Drop in from top
+    camera.x = player.x - canvas.width * 0.35;
+    camera.y = player.y;
+
+    distanceTraveled = lastDistanceCheckpoint; // Fixes distance pausing
+    killScore = lastCheckpointKillScore;       // Fixes score pausing
+    score = Math.floor(distanceTraveled / 10) + killScore;
+
+    // Reset Environment & UI
+    platforms = []; particles = []; bullets = []; enemies = []; pickups = [];
+    floatingTexts = []; destructibles = []; alerts = []; checkpoints = [];
+    boss = null;
+    syncFill.style.width = '0%';
+    uiLayer.classList.remove('overdrive-active', 'neural-overdrive');
+    lastCheckpointSpawnX = lastDistanceCheckpoint;
+    backgroundObjects = [];
+    urbanParallax = [];
+    weatherSystems = [];
+
+    clearAllInputs();
+
+    bossHud.classList.add('hidden');
+    healthFill.style.width = '100%';
+    scoreEl.innerText = score.toString().padStart(6, '0');
+    if (distanceEl) distanceEl.innerText = `${Math.floor(distanceTraveled / 10)}m`;
+    document.body.classList.remove('danger');
+
+    // Rebuild Sector Geometry seamlessly
+    platforms.push(new SolidSurface(lastDistanceCheckpoint - 400, 500, 2000, 90, currentZone));
+    nextPlatformX = lastDistanceCheckpoint + 1600;
+
+    buildWorldSectors(lastDistanceCheckpoint + 6000, true);
 
     if (isTouchDevice) mobileControls.classList.remove('hidden');
 }
@@ -2178,9 +2334,14 @@ function handleEntityDynamics(delta) {
             currentZone++;
         }
 
-        // Distance Checkpoint Check
-        if (distanceTraveled - lastDistanceCheckpoint > CHECKPOINT_INTERVAL) {
-            reachCheckpoint();
+        // Physical Checkpoint Collision
+        for (let i = 0; i < checkpoints.length; i++) {
+            const cp = checkpoints[i];
+            // Check if player passed the wall (with 50px tolerance buffer)
+            if (!cp.isPassed && player.x + (player.w / 2) > cp.x - (cp.w / 2)) {
+                cp.isPassed = true;
+                reachCheckpoint(cp.x, cp.y);
+            }
         }
     }
 
@@ -2198,17 +2359,18 @@ function handleEntityDynamics(delta) {
 
             if (pu.model === 'RAPID_FIRE') {
                 player.powerUps.rapidFire = 8.0;
-                triggerTransition("STRIKE CAPACITY OVERLOAD", COLORS.accent);
+                triggerCombatAlert("STRIKE CAPACITY OVERLOAD", COLORS.accent, "🔥");
             } else if (pu.model === 'SPEED') {
                 player.powerUps.speedBoost = 8.0;
-                triggerTransition("OVERDRIVE ENGAGED", COLORS.primary);
+                triggerCombatAlert("OVERDRIVE ENGAGED", COLORS.primary, "⚡");
             } else if (pu.model === 'SHIELD') {
                 player.powerUps.shield = 10.0;
-                triggerTransition("NEGATION FIELD STABLE", COLORS.primary);
+                triggerCombatAlert("NEGATION FIELD STABLE", COLORS.primary, "🛡");
             } else if (pu.model === 'PLASMA' || pu.model === 'HEAVY') {
                 player.activeArmament = pu.model;
                 weaponNameEl.innerText = `${pu.model} CORE`;
-                triggerTransition(`WEAPON SYSTEM: ${pu.model}`, COLORS.primary);
+                const weaponIcon = pu.model === 'PLASMA' ? "💠" : "💣";
+                triggerCombatAlert(`WEAPON SYSTEM: ${pu.model} INTEGRATED`, pu.model === 'PLASMA' ? "#03a9f4" : "#ff9800", weaponIcon);
             }
             fulfillPickup(pu, i);
             break;
@@ -2222,6 +2384,10 @@ function handleEntityDynamics(delta) {
     for (let i = floatingTexts.length - 1; i >= 0; i--) {
         floatingTexts[i].update(delta);
         if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+    }
+    for (let i = alerts.length - 1; i >= 0; i--) {
+        alerts[i].update(delta);
+        if (alerts[i].life <= 0) alerts.splice(i, 1);
     }
     backgroundObjects.forEach(bo => bo.update(delta));
 
@@ -2239,7 +2405,7 @@ function flagEnemyKill(en) {
     if (!isNeuralOverdrive) {
         neuralSync = Math.min(100, neuralSync + 2 + (comboCount * 0.5));
         syncFill.style.width = `${neuralSync}%`;
-        if (neuralSync >= 100) triggerTransition("NEURAL SYNC CRYSTALLIZED: [Q]", COLORS.primary);
+        if (neuralSync >= 100) triggerCombatAlert("NEURAL SYNC CRYSTALLIZED: [Q]", COLORS.primary, "🧠");
     }
     if (comboCount > 1) floatingTexts.push(new FloatingScore(en.x + en.w / 2, en.y - 40, `X${comboCount} COMBO`, COLORS.primary, 18));
 }
@@ -2458,6 +2624,7 @@ function drawFrame(delta) {
     backgroundObjects.forEach(bo => bo.draw());
     platforms.forEach(p => p.draw());
     destructibles.forEach(db => db.draw());
+    checkpoints.forEach(cp => cp.draw());
 
     pickups.forEach(pu => {
         if (!pu.isFound) {
@@ -2494,6 +2661,7 @@ function drawFrame(delta) {
     // UI HUD Layers (Text drawn on top)
     if (gameState !== 'DYING') drawPowerUpBars();
     floatingTexts.forEach(ft => ft.draw());
+    alerts.forEach((alert, i) => alert.draw(i));
 
     // Speed & Motion Juice
     if (gameState !== 'DYING') drawSpeedVignette();
@@ -2552,7 +2720,7 @@ function drawFrame(delta) {
             ctx.globalAlpha = (Math.sin(Date.now() * 0.02) * 0.3 + 0.7) * (1 - blackPhase);
             ctx.fillStyle = '#fff';
             ctx.shadowBlur = 15;
-            ctx.shadowColor = COLORS.primary;
+            ctx.shadowColor = '#fff'; // White glow
             ctx.font = 'italic 900 48px Outfit';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -2561,7 +2729,7 @@ function drawFrame(delta) {
             // Glitch offset duplicate
             ctx.globalAlpha *= 0.4;
             ctx.shadowBlur = 0;
-            ctx.fillStyle = COLORS.primary;
+            ctx.fillStyle = '#777'; // Grey shade
             ctx.fillText('SYSTEM COMPROMISED', canvas.width / 2 + random(-6, 6), canvas.height / 2 + random(-3, 3));
         }
 
@@ -2580,7 +2748,11 @@ function drawDamageGlitch() {
         const y = random(0, canvas.height);
         const offset = random(-80, 80) * intensity;
         ctx.globalAlpha = intensity * 0.5;
-        ctx.fillStyle = i % 2 === 0 ? COLORS.secondary : COLORS.primary;
+        if (gameState === 'DYING') {
+            ctx.fillStyle = i % 2 === 0 ? '#fff' : '#777'; // Monochrome theme
+        } else {
+            ctx.fillStyle = i % 2 === 0 ? COLORS.secondary : COLORS.primary; // Combat theme
+        }
         ctx.fillRect(offset, y, canvas.width, h);
     }
 
@@ -2786,7 +2958,7 @@ homeBtn.onclick = () => {
     gameState = 'START';
     gameOverScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
-    startHighScoreEl.innerText = `RECORD: ${highScore.toString().padStart(6, '0')}`;
+    startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
 };
 
 pauseBtn.onpointerdown = (e) => {
@@ -2797,18 +2969,18 @@ pauseBtn.onpointerdown = (e) => {
 resumeBtn.onclick = togglePause;
 pauseRestartBtn.onclick = () => {
     pauseScreen.classList.add('hidden');
-    rebootSystem();
+    rebootFromCheckpoint();
     gameState = 'PLAYING';
 };
 pauseHomeBtn.onclick = () => {
     pauseScreen.classList.add('hidden');
     gameState = 'START';
     startScreen.classList.remove('hidden');
-    startHighScoreEl.innerText = `RECORD: ${highScore.toString().padStart(6, '0')}`;
+    startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
 };
 
 // Initial High Score Display
-startHighScoreEl.innerText = `RECORD: ${highScore.toString().padStart(6, '0')}`;
+startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
 
 // Initiate Primary Application Thread
 requestAnimationFrame(tick);

@@ -14,6 +14,7 @@
         content="A high-octane arcade run-and-gun platformer with neon graphics and addictive gameplay.">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 
 <body>
@@ -24,6 +25,11 @@
     </div>
 
     <div id="game-container">
+        <!-- 3D Dynamic Background -->
+        <div id="bg-3d-overlay" class="menu-3d-bg">
+            <canvas id="bg3dCanvas"></canvas>
+        </div>
+
         <canvas id="gameCanvas"></canvas>
 
         <div id="ui-layer">
@@ -85,19 +91,23 @@
         </div>
 
         <div id="pause-screen" class="overlay hidden">
-            <h1 class="game-title">SYSTEM PAUSE</h1>
-            <div class="stats-panel" style="margin-bottom: 20px; align-items: center;">
-                <span class="stat-label">Local Record</span>
-                <div id="pause-high-score" class="stat-value">000000</div>
+            <div class="go-signal">[ SYSTEM PAUSED ]</div>
+            <h1 class="go-title">SYSTEM PAUSE</h1>
+            <div class="go-stat">LOCAL RECORD: <span id="pause-high-score">000000</span></div>
+            <div class="go-btn-group">
+                <button id="resume-btn" class="btn-sync">RESUME LINK</button>
+                <button id="pause-restart-btn" class="btn-sync">RESET SECTOR</button>
+                <button id="pause-home-btn" class="btn-sync">EXIT TO BASE</button>
             </div>
-            <button id="resume-btn" class="btn-start">Resume Link</button>
-            <button id="pause-restart-btn" class="btn-secondary">Reset Sector</button>
-            <button id="pause-home-btn" class="btn-secondary">Exit to Base</button>
         </div>
 
         <div id="start-screen" class="overlay">
-            <h1 class="game-title">CYBERSTRIKE<br>OVERDRIVE</h1>
-            <button id="start-btn" class="btn-start">Initiate Protocol</button>
+            <div class="go-signal1">[ PROTOCOL ONLINE ]</div>
+            <h1 class="go-title">CYBERSTRIKE<br>OVERDRIVE</h1>
+            <div class="go-stat">LOCAL RECORD: <span id="start-high-score">000000</span></div>
+            <div class="go-btn-group" style="margin-bottom: 30px;">
+                <button id="start-btn" class="btn-sync">INITIATE PROTOCOL</button>
+            </div>
             <div class="instructions">
                 <div class="key-hint"><span class="key">WASD</span> Movement</div>
                 <div class="key-hint"><span class="key">SPACE</span> Jump</div>
@@ -105,11 +115,10 @@
                 <div class="key-hint"><span class="key">SHIFT</span> Dash</div>
                 <div class="key-hint"><span class="key">P</span> Pause</div>
             </div>
-            <div id="start-high-score" class="high-score-display">RECORD: 000000</div>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
-            <div class="go-signal">[ SIGNAL_LOST ]</div>
+            <div class="go-signal2">[ SIGNAL LOST ]</div>
             <h1 class="go-title">SYSTEM HALT</h1>
             <div class="go-stat">NEURAL SCORE: <span id="final-score">000000</span></div>
             <div class="go-stat">PEAK SYNC: <span id="over-high-score">000000</span></div>
@@ -122,6 +131,7 @@
     </div>
 
     <script src="game.js"></script>
+    <script src="bg3d.js"></script>
 </body>
 
 </html>

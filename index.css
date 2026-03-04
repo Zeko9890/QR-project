@@ -172,86 +172,31 @@ canvas {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    background: transparent;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     z-index: 200;
-    backdrop-filter: blur(15px);
     transition: opacity 0.5s ease;
 }
 
-.game-title {
-    font-size: clamp(32px, 8vw, 120px);
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: -2px;
-    margin-bottom: 15px;
-    background: linear-gradient(180deg, #fff 0%, var(--primary) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 20px var(--primary));
-    animation: glitch-text 4s infinite;
-    text-align: center;
-    line-height: 1.1;
+.menu-3d-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 190;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(15px);
+    pointer-events: none;
+    transition: opacity 0.5s ease;
 }
 
-@keyframes glitch-text {
+/* Game menus use .go-title and .btn-sync for unified theme */
 
-    0%,
-    100% {
-        transform: skew(0deg);
-    }
-
-    1% {
-        transform: skew(10deg);
-        filter: hue-rotate(90deg);
-    }
-
-    2% {
-        transform: skew(-10deg);
-        filter: hue-rotate(-90deg);
-    }
-
-    3% {
-        transform: skew(0deg);
-        filter: none;
-    }
-
-    45% {
-        transform: scale(1);
-    }
-
-    46% {
-        transform: scale(1.05) translateX(5px);
-    }
-
-    47% {
-        transform: scale(1);
-    }
-}
-
-.btn-start {
-    background: var(--primary);
-    color: #000;
-    border: none;
-    padding: 14px 35px;
-    font-size: 16px;
-    font-weight: 700;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    pointer-events: all;
-}
-
-.btn-start:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 30px var(--primary);
-}
+/* Start button now uses .btn-sync */
 
 .pause-trigger {
     background: rgba(0, 0, 0, 0.4);
@@ -273,36 +218,9 @@ canvas {
     color: #000;
 }
 
-.high-score-display {
-    margin-top: 15px;
-    font-size: 14px;
-    font-weight: 900;
-    color: var(--primary);
-    letter-spacing: 2px;
-    opacity: 0.8;
-}
+/* High score now uses .go-stat */
 
-.btn-secondary {
-    background: transparent;
-    color: var(--primary);
-    border: 2px solid var(--primary);
-    padding: 10px 25px;
-    font-size: 14px;
-    font-weight: 700;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    pointer-events: all;
-    margin-top: 10px;
-}
-
-.btn-secondary:hover {
-    background: var(--primary);
-    color: #000;
-    box-shadow: 0 0 20px var(--primary);
-}
+/* Secondary buttons now use .btn-sync */
 
 .instructions {
     margin-top: 25px;
@@ -650,6 +568,31 @@ button.joy-btn:active:not(.move-joy) {
         margin-top: 6px;
     }
 
+    .btn-sync {
+        height: 40px;
+        line-height: 40px;
+        width: 220px;
+        font-size: 12px;
+        letter-spacing: 3px;
+    }
+
+    .go-title {
+        font-size: clamp(28px, 7vw, 60px);
+        margin-bottom: 15px;
+        letter-spacing: 5px;
+    }
+
+    .go-stat {
+        font-size: 10px;
+        letter-spacing: 2px;
+        margin: 4px 0;
+    }
+
+    .go-btn-group {
+        margin-top: 15px;
+        gap: 8px;
+    }
+
     .instructions {
         display: none;
     }
@@ -790,7 +733,17 @@ button.joy-btn:active:not(.move-joy) {
     }
 }
 
-.go-signal {
+.go-signal1 {
+    font-size: 11px;
+    letter-spacing: 8px;
+    color: #15c915;
+    text-shadow: 0 0 10px var(--primary);
+    margin-bottom: 20px;
+    text-align: center;
+    animation: flicker 1.5s infinite;
+}
+
+.go-signal2 {
     font-size: 11px;
     letter-spacing: 8px;
     color: #c91515;
@@ -951,12 +904,6 @@ button.joy-btn:active:not(.move-joy) {
     text-align: center;
     pointer-events: all;
     vertical-align: middle;
-}
-
-.btn-sync:hover {
-    background: #fff;
-    color: #000;
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
 }
 
 .btn-sync:hover {
