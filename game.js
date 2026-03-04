@@ -335,7 +335,7 @@ if (isTouchDevice) {
 
         let dx = touch.clientX - joyCenterX;
         let dy = touch.clientY - joyCenterY;
-        const maxDist = rect.width / 2 - 15;
+        const maxDist = moveJoyRect.width / 2 - 15;
         const dist = Math.hypot(dx, dy);
 
         if (dist > maxDist) {
@@ -1896,8 +1896,8 @@ function tick(timestamp) {
     let delta = Math.min((timestamp - lastFrameTime) / 1000, 0.05); // More aggressive cap for mobile stability
     lastFrameTime = timestamp;
 
-    // EMERGENCY RESET: If delta is suspicious, clear touches (prevents "ghost" sticking and freezes)
-    if (delta > 0.045 && isTouchDevice) {
+    // EMERGENCY RESET: If delta is suspicious (serious freeze), clear touches
+    if (delta > 0.15 && isTouchDevice) {
         clearAllInputs();
     }
 
