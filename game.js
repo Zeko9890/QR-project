@@ -331,7 +331,7 @@ if (isTouchDevice) {
     window.addEventListener('touchcancel', clearMoveJoy, { passive: false });
 
     function updateMoveTracking(touch) {
-        if (!moveJoyRect) return;
+        if (!moveJoyRect) moveJoyRect = moveJoystick.getBoundingClientRect();
         const joyCenterX = moveJoyRect.left + moveJoyRect.width / 2;
         const joyCenterY = moveJoyRect.top + moveJoyRect.height / 2;
 
@@ -348,9 +348,9 @@ if (isTouchDevice) {
         moveJoyInner.style.transform = `translate(${dx}px, ${dy}px)`;
 
         // Horizontal thresholds for walking (Direct Injection)
-        if (dx < -15) {
+        if (dx < -8) {
             mobileInputX = -1;
-        } else if (dx > 15) {
+        } else if (dx > 8) {
             mobileInputX = 1;
         } else {
             mobileInputX = 0;
@@ -421,19 +421,17 @@ if (isTouchDevice) {
     // This prevents 'stuck' keys when fingers slide off buttons.
     window.addEventListener('touchend', (e) => {
         if (e.touches.length === 0) {
-            keys['ArrowLeft'] = false;
-            keys['ArrowRight'] = false;
             keys['Space'] = false;
             keys['ShiftLeft'] = false;
             mouse.down = false;
+            mobileInputX = 0;
         }
     }, { passive: true });
     window.addEventListener('touchcancel', () => {
-        keys['ArrowLeft'] = false;
-        keys['ArrowRight'] = false;
         keys['Space'] = false;
         keys['ShiftLeft'] = false;
         mouse.down = false;
+        mobileInputX = 0;
         isFiringJoy = false;
     }, { passive: true });
 }
