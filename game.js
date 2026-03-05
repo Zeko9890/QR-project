@@ -50,6 +50,11 @@ const pauseHomeBtn = document.getElementById('pause-home-btn');
 const startHighScoreEl = document.getElementById('start-high-score');
 const pauseHighScoreEl = document.getElementById('pause-high-score');
 const overHighScoreEl = document.getElementById('over-high-score');
+const loadingScreen = document.getElementById('loading-screen');
+const loadingBarFill = document.getElementById('loading-bar-fill');
+const loadingPercent = document.getElementById('loading-percent');
+const loadingStatus = document.getElementById('loading-status');
+const loadingSublabel = document.getElementById('loading-sublabel');
 
 // --- 2. GLOBAL DESIGN TOKENS (STRICT MATTE) ---
 const COLORS = {
@@ -185,7 +190,7 @@ let lastCheckpointKillScore = 0;
 let currentZone = 1;
 const DEBUG_MODE = false; // Set to false for production
 const BOSS_INTERVAL = DEBUG_MODE ? 5000 : 60000;
-const CHECKPOINT_INTERVAL = DEBUG_MODE ? 2000 : 15000;
+const CHECKPOINT_INTERVAL = DEBUG_MODE ? 2000 : 3500;
 let timeScale = 1.0;
 
 // --- 4. INPUT MANAGEMENT ---
@@ -514,6 +519,15 @@ const AudioFX = {
         playDynamicSound(1800, 'square', 0.05, 0.06, 400);
         setTimeout(() => playDynamicSound(1200, 'sawtooth', 0.1, 0.05, -800), 30);
         setTimeout(() => playDynamicSound(2500, 'square', 0.05, 0.04, -1500), 60);
+    },
+    loadingDrive: () => {
+        // "trrrrrrrrrrrr" mechanical drive sound using rapid oscillators
+        const now = audioCtx ? audioCtx.currentTime : 0;
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => {
+                playDynamicSound(80 + Math.random() * 20, 'sawtooth', 0.1, 0.02, 10);
+            }, i * 50);
+        }
     }
 };
 
@@ -1975,6 +1989,52 @@ function triggerTransition(text, color) {
     transitionColor = color;
 }
 
+function triggerLoadingSequence(onComplete) {
+    loadingScreen.classList.remove('hidden');
+    let progress = 0;
+    const statusMessages = [
+        "SYNCHRONIZING NEURAL UPLINK...",
+        "DECRYPTING SECTOR GEOMETRY...",
+        "CALIBRATING WEAPON SYSTEMS...",
+        "ESTABLISHING TITAN PROTOCOLS...",
+        "RENDER ENGINE INITIALIZED"
+    ];
+
+    AudioFX.loadingDrive();
+
+    const startTime = performance.now();
+    const duration = 2000; // 2 seconds of loading
+
+    function update() {
+        const now = performance.now();
+        const elapsed = now - startTime;
+        progress = Math.min(elapsed / duration, 1);
+
+        loadingBarFill.style.width = `${progress * 100}%`;
+        loadingPercent.innerText = `${Math.floor(progress * 100)}%`;
+
+        const msgIdx = Math.floor(progress * (statusMessages.length - 1));
+        loadingStatus.innerText = statusMessages[msgIdx];
+
+        // Random tech noise for sublabel
+        if (Math.random() > 0.9) {
+            const techTxt = ["0x" + Math.floor(Math.random() * 1000000).toString(16), "SYS_READY", "LINK_ACTIVE", "PORT_8080_OPEN"];
+            loadingSublabel.innerText = techTxt[Math.floor(Math.random() * techTxt.length)];
+        }
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            setTimeout(() => {
+                loadingScreen.classList.add('hidden');
+                if (onComplete) onComplete();
+            }, 300);
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+
 function togglePause() {
     if (gameState === 'PLAYING') {
         gameState = 'PAUSED';
@@ -2988,22 +3048,28 @@ function drawTransitionOverlay(dt) {
 // --- 14. TERMINAL HOOKS ---
 startBtn.onclick = () => {
     initAudioSystem();
-    gameState = 'PLAYING';
-    startScreen.classList.add('hidden');
-    rebootSystem();
+    triggerLoadingSequence(() => {
+        gameState = 'PLAYING';
+        startScreen.classList.add('hidden');
+        rebootSystem();
+    });
 };
 
 restartBtn.onclick = () => {
-    gameState = 'PLAYING';
-    gameOverScreen.classList.add('hidden');
-    rebootSystem();
+    triggerLoadingSequence(() => {
+        gameState = 'PLAYING';
+        gameOverScreen.classList.add('hidden');
+        rebootSystem();
+    });
 };
 
 homeBtn.onclick = () => {
-    gameState = 'START';
-    gameOverScreen.classList.add('hidden');
-    startScreen.classList.remove('hidden');
-    startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+    triggerLoadingSequence(() => {
+        gameState = 'START';
+        gameOverScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+        startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+    });
 };
 
 pauseBtn.onpointerdown = (e) => {
@@ -3019,9 +3085,11 @@ pauseRestartBtn.onclick = () => {
 };
 pauseHomeBtn.onclick = () => {
     pauseScreen.classList.add('hidden');
-    gameState = 'START';
-    startScreen.classList.remove('hidden');
-    startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+    triggerLoadingSequence(() => {
+        gameState = 'START';
+        startScreen.classList.remove('hidden');
+        startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+    });
 };
 
 // Initial High Score Display
