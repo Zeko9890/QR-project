@@ -646,11 +646,59 @@ button.joy-btn:active:not(.move-joy) {
 
 .go-stat {
     font-size: clamp(10px, 2vw, 13px);
-    color: #00e5ff;
-    margin: 4px 0;
+    color: #e0e0e0;
+    margin: 6px 0;
     letter-spacing: clamp(1px, 0.8vw, 4px);
     text-align: center;
     text-transform: uppercase;
+}
+
+.go-score {
+    font-size: clamp(22px, 5vw, 42px) !important;
+    color: var(--primary) !important;
+    font-weight: 900;
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+    margin-bottom: 12px !important;
+}
+
+.go-score span {
+    color: #fff;
+}
+
+.go-high {
+    color: var(--secondary) !important;
+    font-weight: 700;
+}
+
+.go-pilot {
+    font-family: 'Courier New', monospace;
+    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 12px;
+    border-radius: 4px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.go-pilot span {
+    color: var(--primary);
+    font-weight: 900;
+}
+
+.go-status {
+    margin-top: 8px !important;
+    font-size: 11px !important;
+    letter-spacing: 5px !important;
+    color: #888;
+}
+
+.go-status span {
+    color: #fff;
+    font-weight: 900;
+    padding: 2px 10px;
+    border: 1px solid #fff;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .btn-sync {
@@ -691,6 +739,259 @@ button.joy-btn:active:not(.move-joy) {
     width: 100%;
 }
 
+/* ========================================
+   LEADERBOARD OVERLAY
+   ======================================== */
+.btn-lb {
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    font-size: 12px !important;
+    letter-spacing: 3px !important;
+}
+
+.btn-lb:hover {
+    background: var(--primary) !important;
+    color: #000 !important;
+}
+
+.lb-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 600;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: lbFadeIn 0.3s ease;
+}
+
+.lb-overlay.hidden {
+    display: none !important;
+}
+
+@keyframes lbFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.lb-overlay-box {
+    width: min(420px, 92vw);
+    max-height: 80vh;
+    background: rgba(18, 18, 18, 0.95);
+    border: 1px solid rgba(0, 229, 255, 0.4);
+    border-radius: 10px;
+    padding: 24px;
+    position: relative;
+    overflow-y: auto;
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.15), inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.lb-overlay-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    border-radius: 10px 10px 0 0;
+}
+
+.lb-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.lb-close {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #888;
+    font-size: 18px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.lb-close:hover {
+    background: var(--secondary);
+    border-color: var(--secondary);
+    color: #fff;
+}
+
+.lb-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--primary);
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.lb-header {
+    display: grid;
+    grid-template-columns: 36px 1fr 90px;
+    gap: 4px;
+    padding: 0 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 6px;
+}
+
+.lb-rank-h,
+.lb-name-h,
+.lb-score-h {
+    font-family: 'Outfit', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: #555;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.lb-score-h {
+    text-align: right;
+}
+
+.lb-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lb-entry {
+    display: grid;
+    grid-template-columns: 36px 1fr 90px;
+    gap: 4px;
+    align-items: center;
+    padding: 8px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.lb-entry:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.lb-entry.lb-highlight {
+    background: rgba(0, 229, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.1);
+}
+
+.lb-rank {
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: #555;
+    text-align: center;
+}
+
+.lb-entry:nth-child(1) .lb-rank {
+    color: #ffd700;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.lb-entry:nth-child(2) .lb-rank {
+    color: #c0c0c0;
+}
+
+.lb-entry:nth-child(3) .lb-rank {
+    color: #cd7f32;
+}
+
+.lb-name {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #ccc;
+    letter-spacing: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lb-entry.lb-highlight .lb-name {
+    color: var(--primary);
+}
+
+.lb-score-val {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    color: #fff;
+    text-align: right;
+    letter-spacing: 1px;
+}
+
+.lb-empty {
+    text-align: center;
+    color: #555;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 30px 0;
+    font-family: 'Outfit', sans-serif;
+}
+
+.user-input-container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: min(280px, 86vw);
+    pointer-events: auto;
+}
+
+.user-input-container .stat-label {
+    font-size: 13px;
+    letter-spacing: 2px;
+}
+
+.cyber-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid var(--primary);
+    border-radius: 4px;
+    color: #fff;
+    padding: 10px 15px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 2px;
+    outline: none;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+.cyber-input:focus {
+    background: rgba(0, 229, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.3), inset 0 0 10px rgba(0, 229, 255, 0.2);
+    border-color: #fff;
+}
+
+.cyber-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
 
 /* ========================================
    LOADING SCREEN
@@ -708,9 +1009,9 @@ button.joy-btn:active:not(.move-joy) {
     left: 0;
     width: 100%;
     height: 100%;
-    background: url('loading_bg.png') center center / cover no-repeat;
-    opacity: 0.3;
-    filter: blur(3px) saturate(1.5);
+    background: url('loading_bg.png') center center / 100% 100% no-repeat;
+    opacity: 0.8;
+    filter: blur(1px) saturate(1.2);
     z-index: 0;
 }
 
@@ -723,9 +1024,9 @@ button.joy-btn:active:not(.move-joy) {
     width: 100%;
     height: 100%;
     background: linear-gradient(180deg,
-            rgba(0, 0, 0, 0.7) 0%,
-            rgba(18, 18, 18, 0.85) 50%,
-            rgba(0, 0, 0, 0.95) 100%);
+            rgba(0, 0, 0, 0.2) 0%,
+            rgba(12, 12, 12, 0.4) 50%,
+            rgba(0, 0, 0, 0.6) 100%);
     z-index: 1;
 }
 

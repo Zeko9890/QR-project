@@ -165,9 +165,29 @@
     }
 
     .go-stat {
-        font-size: 9px;
+        font-size: 8px;
         letter-spacing: 1px;
-        margin: 2px 0;
+        margin: 1px 0;
+    }
+
+    .go-score {
+        font-size: 16px !important;
+        margin-bottom: 4px !important;
+    }
+
+    .go-pilot {
+        padding: 2px 6px;
+        background: none;
+        border: none;
+    }
+
+    .go-status {
+        margin-top: 4px !important;
+        font-size: 8px !important;
+    }
+
+    .go-status span {
+        padding: 1px 5px;
     }
 
     .go-btn-group {

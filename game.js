@@ -55,6 +55,14 @@ const loadingBarFill = document.getElementById('loading-bar-fill');
 const loadingPercent = document.getElementById('loading-percent');
 const loadingStatus = document.getElementById('loading-status');
 const loadingSublabel = document.getElementById('loading-sublabel');
+const usernameInput = document.getElementById('username-input');
+const loadingBgImg = document.querySelector('.loading-bg-img');
+
+// Overlay Leaderboard Elements
+const leaderboardOverlay = document.getElementById('leaderboard-overlay');
+const startLbBtn = document.getElementById('start-lb-btn');
+const overLbBtn = document.getElementById('over-lb-btn');
+const lbCloseBtn = document.getElementById('lb-close-btn');
 
 // --- 2. GLOBAL DESIGN TOKENS (STRICT MATTE) ---
 const COLORS = {
@@ -90,6 +98,7 @@ let neuralSync = 0; // 0 to 100
 let isNeuralOverdrive = false;
 let overdriveTimer = 0;
 let highScore = parseInt(localStorage.getItem('cyberstrike_highscore')) || 0;
+let playerName = localStorage.getItem('cyberstrike_username') || "GUEST_PILOT";
 let mobileInputX = 0; // Top-level global for input bridging
 
 // --- Death Animation State ---
@@ -991,7 +1000,7 @@ class PlayerTitan {
 
         // Void Check (Terminal Fall)
         if (this.y > canvas.height + 600) {
-            this.takeHit(999, 0, 0, true); // True flag forces damage regardless of shield
+            this.takeHit(999, 0, 0, true, 'VOID'); // True flag forces damage regardless of shield
         }
     }
 
@@ -1076,7 +1085,7 @@ class PlayerTitan {
         }
     }
 
-    takeHit(rawDmg, kbX = 0, kbY = 0, force = false) {
+    takeHit(rawDmg, kbX = 0, kbY = 0, force = false, reason = 'ENEMY') {
         if (!force && (this.iFrames > 0 || this.isCompromised || this.powerUps.shield > 0)) return;
 
         // Armor Shield Logic
@@ -1105,7 +1114,7 @@ class PlayerTitan {
 
         if (this.hp <= 0) {
             this.isCompromised = true;
-            initiateSystemHalt();
+            initiateSystemHalt(reason);
         }
 
         // UI Refresh
@@ -1993,8 +2002,11 @@ function triggerTransition(text, color) {
     transitionColor = color;
 }
 
-function triggerLoadingSequence(onComplete) {
+function triggerLoadingSequence(onComplete, bgImage = 'loading_bg.png') {
     loadingScreen.classList.remove('hidden');
+    if (loadingBgImg) {
+        loadingBgImg.style.backgroundImage = `url('${bgImage}')`;
+    }
     let progress = 0;
     const statusMessages = [
         "SYNCHRONIZING NEURAL UPLINK...",
@@ -2044,6 +2056,8 @@ function togglePause() {
         gameState = 'PAUSED';
         pauseScreen.classList.remove('hidden');
         pauseHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+        const pausePilotEl = document.getElementById('pause-pilot-name');
+        if (pausePilotEl) pausePilotEl.innerText = playerName;
     } else if (gameState === 'PAUSED') {
         gameState = 'PLAYING';
         pauseScreen.classList.add('hidden');
@@ -2147,21 +2161,53 @@ function rebootFromCheckpoint() {
     if (isTouchDevice) mobileControls.classList.remove('hidden');
 }
 
-function initiateSystemHalt() {
+// --- LEADERBOARD SYSTEM (Firebase Bridge) ---
+function saveToLeaderboard(name, playerScore, reason) {
+    if (window.saveScoreToFirebase) {
+        window.saveScoreToFirebase(name, playerScore, reason);
+    }
+}
+
+function renderLeaderboard(listId, highlightName = '', highlightScore = -1) {
+    if (window.renderFirebaseLeaderboard) {
+        window.renderFirebaseLeaderboard(listId, highlightName, highlightScore);
+    } else {
+        // Firebase not loaded yet - show placeholder
+        const listEl = document.getElementById(listId);
+        if (listEl) listEl.innerHTML = '<li class="lb-empty">SYNCING DATA...</li>';
+    }
+}
+
+function initiateSystemHalt(reason = 'ENEMY') {
     // Enter DYING state instead of immediate GAMEOVER
     gameState = 'DYING';
     deathTimer = 0;
     deathFadeAlpha = 0;
 
-    // Give the player a dramatic upward pop then let gravity take over
-    deathPlayerVX = player.vx * 0.3 + random(-100, 100);
-    deathPlayerVY = -500; // Pop upward
-    deathPlayerSpin = (Math.random() > 0.5 ? 1 : -1) * random(4, 8);
+    // Visual Variations based on reason
+    if (reason === 'VOID') {
+        deathPlayerVX = player.vx * 0.2;
+        deathPlayerVY = player.vy * 0.5;
+        deathPlayerSpin = random(2, 4);
+        screenShake = 20;
+        screenFlash = 0.5;
+        emitParticles(player.x + player.w / 2, player.y + player.h / 2, 'NORMAL', COLORS.primary, 30, 300);
+    } else if (reason === 'TITAN') {
+        deathPlayerVX = (player.x - boss.x > 0 ? 800 : -800) + random(-200, 200);
+        deathPlayerVY = -700;
+        deathPlayerSpin = random(15, 25);
+        screenShake = 60;
+        screenFlash = 1.0;
+        emitParticles(player.x + player.w / 2, player.y + player.h / 2, 'NORMAL', COLORS.boss, 60, 800);
+    } else {
+        deathPlayerVX = player.vx * 0.3 + random(-150, 150);
+        deathPlayerVY = -500;
+        deathPlayerSpin = (Math.random() > 0.5 ? 1 : -1) * random(5, 12);
+        screenShake = 40;
+        screenFlash = 0.8;
+        emitParticles(player.x + player.w / 2, player.y + player.h / 2, 'NORMAL', COLORS.secondary, 50, 600);
+    }
 
-    // Big death explosion
-    screenShake = 40;
-    screenFlash = 0.8;
-    emitParticles(player.x + player.w / 2, player.y + player.h / 2, 'NORMAL', COLORS.secondary, 50, 600);
     emitParticles(player.x + player.w / 2, player.y + player.h / 2, 'BITS', '#fff', 20, 300);
     AudioFX.heavyExplosion();
 
@@ -2172,26 +2218,43 @@ function initiateSystemHalt() {
     }
     finalScoreEl.innerText = score.toString().padStart(6, '0');
     overHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+
     const unitEl = document.getElementById('unit-status');
+    const pilotNameEl = document.getElementById('over-pilot-name');
+    if (pilotNameEl) pilotNameEl.innerText = playerName;
+
     if (unitEl) {
-        let status = 'COMPROMISED';
-        if (score > 5000) status = 'OPERATIVE';
-        if (score > 15000) status = 'TITAN HUNTER';
-        if (score > 40000) status = 'NEURAL ARCHITECT';
-        if (score > 100000) status = 'OVERDRIVE GOD';
-        unitEl.innerText = status;
+        let rank = 'COMPROMISED';
+        if (score > 5000) rank = 'OPERATIVE';
+        if (score > 15000) rank = 'TITAN HUNTER';
+        if (score > 40000) rank = 'NEURAL ARCHITECT';
+        if (score > 100000) rank = 'OVERDRIVE GOD';
+
+        let diagnostic = 'HARDWARE FAILURE';
+        if (reason === 'VOID') diagnostic = 'KINETIC DESYNC';
+        else if (reason === 'TITAN') diagnostic = 'TITAN EXECUTION';
+        else if (reason === 'ENEMY') diagnostic = 'COMBAT FATIGUE';
+
+        unitEl.innerText = `${diagnostic} // ${rank}`;
     }
+
+    // Save to leaderboard
+    saveToLeaderboard(playerName, score, reason);
 
     // Clear all stuck inputs
     clearAllInputs();
     document.body.classList.remove('danger');
-    if (isTouchDevice) mobileControls.classList.add('hidden');
+    if (isTouchDevice && mobileControls) mobileControls.classList.add('hidden');
 }
 
 function finalizeDeathSequence() {
     gameState = 'GAMEOVER';
     gameOverScreen.style.opacity = '0';
     gameOverScreen.classList.remove('hidden');
+
+    // Pre-fetch the latest leaderboard so it's ready if they open the overlay
+    renderLeaderboard('leaderboard-list', playerName, score);
+
     // Smooth fade-in of the game over screen
     let fadeIn = 0;
     const fadeInterval = setInterval(() => {
@@ -2228,7 +2291,13 @@ function tick(timestamp) {
         const viewH = canvas.height * INV_SCALE;
 
         const camTX = player.x - viewW * 0.35 + (mouse.x - (player.x - camera.x + player.w / 2)) * 0.15;
-        const camTY = player.y - viewH * 0.5 + (mouse.y - (player.y - camera.y + player.h / 2)) * 0.15;
+        let camTY = player.y - viewH * 0.5 + (mouse.y - (player.y - camera.y + player.h / 2)) * 0.15;
+
+        // Mobile Floor Protection: Bias camera towards a stable horizon to prevent floor from disappearing on jump
+        if (isMobile) {
+            camTY = lerp(260, camTY, 0.45); // Keep camera more centered on the action zone
+        }
+
         camera.x = lerp(camera.x, camTX, 0.12);
         camera.y = lerp(camera.y, camTY, 0.1);
 
@@ -2346,7 +2415,8 @@ function handleBulletCollisions(delta) {
                 let kY = b.vy * 0.6 - 300; // Bump upwards
                 if (b.type === 'KNOCKBACK') { kX *= 2.5; kY -= 200; }
 
-                player.takeHit(b.dmg, kX, kY);
+                const reason = b.color === COLORS.boss ? 'TITAN' : 'ENEMY';
+                player.takeHit(b.dmg, kX, kY, false, reason);
                 bullets.splice(i, 1);
             }
         } else {
@@ -2428,7 +2498,7 @@ function handleEntityDynamics(delta) {
                 score += 1000; // Bonus for phasing
                 emitParticles(en.x, en.y, 'BITS', COLORS.white, 20, 300);
             } else {
-                player.takeHit(10, (player.x - en.x) * 5, -200);
+                player.takeHit(10, (player.x - en.x) * 5, -200, false, 'ENEMY');
             }
         }
     }
@@ -3061,11 +3131,19 @@ function drawTransitionOverlay(dt) {
 // --- 14. TERMINAL HOOKS ---
 startBtn.onclick = () => {
     initAudioSystem();
+
+    // Capture Username
+    if (usernameInput) {
+        playerName = usernameInput.value.trim().toUpperCase() || "GUEST_PILOT";
+        localStorage.setItem('cyberstrike_username', playerName);
+    }
+
     triggerLoadingSequence(() => {
         gameState = 'PLAYING';
         startScreen.classList.add('hidden');
         rebootSystem();
-    });
+        triggerCombatAlert(`NEURAL LINK ESTABLISHED: ${playerName}`, COLORS.primary, "🛰");
+    }, 'loading_bg.png');
 };
 
 restartBtn.onclick = () => {
@@ -3073,7 +3151,7 @@ restartBtn.onclick = () => {
         gameState = 'PLAYING';
         gameOverScreen.classList.add('hidden');
         rebootSystem();
-    });
+    }, 'loading_bg.png');
 };
 
 homeBtn.onclick = () => {
@@ -3082,7 +3160,8 @@ homeBtn.onclick = () => {
         gameOverScreen.classList.add('hidden');
         startScreen.classList.remove('hidden');
         startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
-    });
+        renderLeaderboard('leaderboard-list');
+    }, 'exiting_bg.png');
 };
 
 pauseBtn.onpointerdown = (e) => {
@@ -3102,11 +3181,40 @@ pauseHomeBtn.onclick = () => {
         gameState = 'START';
         startScreen.classList.remove('hidden');
         startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
-    });
+        renderLeaderboard('leaderboard-list');
+    }, 'exiting_bg.png');
+};
+
+// --- LEADERBOARD OVERLAY LOGIC ---
+const openLeaderboard = () => {
+    leaderboardOverlay.classList.remove('hidden');
+};
+const closeLeaderboard = () => {
+    leaderboardOverlay.classList.add('hidden');
+};
+
+if (startLbBtn) startLbBtn.onclick = openLeaderboard;
+if (overLbBtn) overLbBtn.onclick = openLeaderboard;
+if (lbCloseBtn) lbCloseBtn.onclick = closeLeaderboard;
+
+// Close leaderboard if click happens outside the box
+leaderboardOverlay.onclick = (e) => {
+    if (e.target === leaderboardOverlay) closeLeaderboard();
 };
 
 // Initial High Score Display
+if (usernameInput) usernameInput.value = playerName;
 startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
+
+// Render leaderboard once Firebase module is ready (it loads async as ES module)
+function initLeaderboard() {
+    if (window.firebaseReady) {
+        renderLeaderboard('leaderboard-list');
+    } else {
+        setTimeout(initLeaderboard, 300);
+    }
+}
+initLeaderboard();
 
 // Initiate Primary Application Thread
 requestAnimationFrame(tick);
