@@ -69,7 +69,9 @@ canvas {
     justify-content: space-between;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
+    min-width: 0;
+    width: 100%;
 }
 
 .stats-panel {
@@ -80,6 +82,8 @@ canvas {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
+    flex-shrink: 1;
 }
 
 .stat-label {
@@ -179,6 +183,10 @@ canvas {
     align-items: center;
     z-index: 200;
     transition: opacity 0.5s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px 12px;
+    box-sizing: border-box;
 }
 
 .menu-3d-bg {
@@ -767,12 +775,12 @@ button.joy-btn:active:not(.move-joy) {
 
 .go-title {
     font-family: 'Outfit', sans-serif;
-    font-size: clamp(52px, 11vw, 110px);
+    font-size: clamp(28px, 9vw, 110px);
     font-weight: 900;
     color: #fff;
-    letter-spacing: 10px;
+    letter-spacing: clamp(2px, 1.5vw, 10px);
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: clamp(10px, 3vh, 30px);
     line-height: 1;
     text-transform: uppercase;
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.4);
@@ -876,11 +884,21 @@ button.joy-btn:active:not(.move-joy) {
     }
 }
 
+.go-signal {
+    font-size: 11px;
+    letter-spacing: 8px;
+    color: #a0a0ff;
+    text-shadow: 0 0 10px var(--primary);
+    margin-bottom: 14px;
+    text-align: center;
+    animation: flicker 1.5s infinite;
+}
+
 .go-stat {
-    font-size: 13px;
+    font-size: clamp(10px, 2vw, 13px);
     color: #00e5ff;
-    margin: 6px 0;
-    letter-spacing: 4px;
+    margin: 4px 0;
+    letter-spacing: clamp(1px, 0.8vw, 4px);
     text-align: center;
     text-transform: uppercase;
 }
@@ -890,20 +908,22 @@ button.joy-btn:active:not(.move-joy) {
     background: none;
     border: 2px solid #fff;
     color: #fff;
-    padding: 0;
-    height: 54px;
-    line-height: 54px;
+    padding: 0 16px;
+    height: 50px;
+    line-height: 50px;
     cursor: pointer;
     font-family: 'Outfit', sans-serif;
-    font-size: 15px;
+    font-size: clamp(11px, 2.5vw, 15px);
     font-weight: 900;
-    letter-spacing: 4px;
+    letter-spacing: clamp(1px, 0.8vw, 4px);
     transition: 0.3s;
     display: block;
-    width: 280px;
+    width: min(280px, 86vw);
     text-align: center;
     pointer-events: all;
-    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-sync:hover {
@@ -915,7 +935,87 @@ button.joy-btn:active:not(.move-joy) {
 .go-btn-group {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: clamp(8px, 1.5vh, 14px);
     align-items: center;
-    margin-top: 35px;
+    margin-top: clamp(12px, 3vh, 35px);
+    width: 100%;
+}
+
+/* ========================================
+   MOBILE PORTRAIT OVERLAY FIXES
+   ======================================== */
+@media (max-width: 600px) {
+    .overlay {
+        justify-content: flex-start;
+        padding-top: max(20px, env(safe-area-inset-top, 20px));
+    }
+
+    .go-title {
+        font-size: clamp(26px, 10vw, 52px);
+        letter-spacing: 3px;
+        margin-bottom: 10px;
+    }
+
+    .go-signal,
+    .go-signal1,
+    .go-signal2 {
+        font-size: 9px;
+        letter-spacing: 4px;
+        margin-bottom: 10px;
+    }
+
+    .go-stat {
+        font-size: 10px;
+        letter-spacing: 1px;
+        margin: 3px 0;
+    }
+
+    .btn-sync {
+        height: 44px;
+        line-height: 44px;
+        font-size: 11px;
+        letter-spacing: 2px;
+        width: min(260px, 90vw);
+    }
+
+    .go-btn-group {
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    .instructions {
+        display: none;
+    }
+
+    .hud-top {
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+
+    .stats-panel {
+        padding: 3px 6px;
+    }
+
+    .stat-label {
+        font-size: 7px;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+        font-size: 12px;
+    }
+
+    .health-bar-container {
+        width: 70px;
+        height: 5px;
+    }
+
+    .sync-bar-container {
+        width: 60px;
+        height: 4px;
+    }
+
+    #weapon-name {
+        font-size: 10px;
+    }
 }
