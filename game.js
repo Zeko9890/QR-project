@@ -508,7 +508,13 @@ const AudioFX = {
         setTimeout(() => playDynamicSound(1400, 'sine', 0.15, 0.1, 400), 50);
     },
     dash: () => playDynamicSound(300, 'sine', 0.12, 0.08, 1200),
-    bossEntry: () => playDynamicSound(60, 'sawtooth', 2.0, 0.2, 50)
+    bossEntry: () => playDynamicSound(60, 'sawtooth', 2.0, 0.2, 50),
+    shatter: () => {
+        // High-pitched crackling crystal/glass shatter
+        playDynamicSound(1800, 'square', 0.05, 0.06, 400);
+        setTimeout(() => playDynamicSound(1200, 'sawtooth', 0.1, 0.05, -800), 30);
+        setTimeout(() => playDynamicSound(2500, 'square', 0.05, 0.04, -1500), 60);
+    }
 };
 
 // --- 6. UTILITY CLASSES & FUNCTIONS ---
@@ -1738,39 +1744,60 @@ class CheckpointWall {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.w = 30;
-        this.h = canvas.height * 2; // Tall enough to cover vertical space
+        this.w = 40;
+        this.h = canvas.height * 2.5;
         this.isPassed = false;
+        this.noiseSeed = Math.random() * 1000;
     }
 
     draw() {
         if (this.isPassed) return;
-        ctx.save();
-        ctx.translate(this.x - camera.x, this.y - camera.y);
+        const dx = this.x - camera.x;
+        // Optimization: skip if far off screen
+        if (dx + 200 < 0 || dx - 200 > canvas.width) return;
 
-        // Holographic gradient
-        const grad = ctx.createLinearGradient(0, -this.h, 0, 0);
-        grad.addColorStop(0, 'rgba(0, 229, 255, 0.0)');
-        grad.addColorStop(0.5, 'rgba(0, 229, 255, 0.3)');
-        grad.addColorStop(1, 'rgba(255, 255, 255, 0.6)');
+        ctx.save();
+        ctx.translate(dx, 0);
+
+        // Glass Wall Base (Frosted/Prismatic)
+        const grad = ctx.createLinearGradient(-this.w / 2, 0, this.w / 2, 0);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+        grad.addColorStop(0.3, 'rgba(0, 229, 255, 0.2)');
+        grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+        grad.addColorStop(0.7, 'rgba(0, 229, 255, 0.2)');
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
 
         ctx.fillStyle = grad;
-        ctx.fillRect(-this.w / 2, -this.h, this.w, this.h);
+        ctx.fillRect(-this.w / 2, 0, this.w, canvas.height);
 
-        // Glowing edges
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = COLORS.primary;
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+        // Glass Internal Cracks/Fractures
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(-this.w / 2, 0); ctx.lineTo(-this.w / 2, -this.h);
-        ctx.moveTo(this.w / 2, 0); ctx.lineTo(this.w / 2, -this.h);
+        for (let i = 0; i < 15; i++) {
+            const ry = ((i * 123 + this.noiseSeed) % canvas.height);
+            ctx.moveTo(-this.w / 2, ry);
+            ctx.lineTo(this.w / 2, ry + (Math.sin(i) * 40));
+        }
         ctx.stroke();
 
-        // Scanning laser band
-        const bandY = -this.h + (Date.now() * 0.4) % this.h;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.fillRect(-this.w / 2, bandY, this.w, 8);
+        // Prismatic Edges
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.strokeRect(-this.w / 2, 0, this.w, canvas.height);
+
+        // Scanning Pulse
+        const p = (Date.now() * 0.001) % 1;
+        ctx.fillStyle = `rgba(0, 229, 255, ${0.4 * (1 - p)})`;
+        ctx.fillRect(-this.w / 2, p * canvas.height, this.w, 40);
+
+        // Highlight Glow
+        if (!isMobile) {
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = COLORS.primary;
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(-2, 0, 4, canvas.height);
+        }
 
         ctx.restore();
     }
@@ -1900,23 +1927,41 @@ function reachCheckpoint(x, y) {
     lastDistanceCheckpoint = distanceTraveled;
     lastCheckpointKillScore = killScore;
 
-    // Break wall into particles
-    emitParticles(x, y - 100, 'NORMAL', '#fff', 40, 600);
-    emitParticles(x, y - 50, 'NORMAL', COLORS.primary, 30, 400);
+    // Glass Shatter Visuals
+    const shards = isMobile ? 25 : 60;
+    for (let i = 0; i < shards; i++) {
+        const py = Math.random() * canvas.height;
+        const color = Math.random() > 0.5 ? '#fff' : COLORS.primary;
+        // Explode outward from the center line of the wall
+        particles.push(new ParticleSystem(
+            x + random(-10, 10),
+            py,
+            color,
+            random(4, 12),
+            random(200, 800) * (Math.random() > 0.5 ? 1 : -1),
+            random(-300, 300),
+            random(0.8, 1.5),
+            Math.random() > 0.5 ? 'SQUARE' : 'CIRCLE'
+        ));
+    }
+
+    // Secondary dust clouds
+    emitParticles(x, y, 'SMOKE', '#fff', 15, 200);
 
     // Vibration
     if ("vibrate" in navigator) {
         navigator.vibrate([100, 50, 100]);
     }
 
-    // Recovery (Reduced for difficulty)
+    // Recovery
     player.hp = Math.min(player.maxHp, player.hp + 15);
     healthFill.style.width = `${Math.ceil(player.hp)}%`;
 
-    AudioFX.pickup();
+    AudioFX.shatter(); // Play new glass shatter sound
+    screenShake = 15; // Jolt the camera
 
-    // Requested purple drifting notification
-    floatingTexts.push(new FloatingScore(x, y - 150, "CHECKPOINT REACHED", COLORS.accent, 35));
+    // Drifting notification
+    floatingTexts.push(new FloatingScore(x, player.y - 150, "CHECKPOINT REACHED", COLORS.accent, 35));
 }
 
 let transitionTimer = 0;

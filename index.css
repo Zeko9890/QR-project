@@ -84,6 +84,7 @@ canvas {
     gap: 2px;
     min-width: 0;
     flex-shrink: 1;
+    white-space: nowrap;
 }
 
 .stat-label {
@@ -497,42 +498,97 @@ button.joy-btn:active:not(.move-joy) {
    LANDSCAPE MOBILE (PRIMARY GAMEPLAY MODE)
    ======================================== */
 @media (orientation: landscape) and (max-height: 500px) {
+    .overlay {
+        padding: 6px 16px 8px;
+    }
+
     #ui-layer {
         padding: 4px 8px;
     }
 
     .hud-top {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
         gap: 4px;
+        width: 100%;
     }
 
     .stats-panel {
-        padding: 3px 6px;
-        border-radius: 4px;
+        padding: 3px 8px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        min-width: 0;
+        height: 24px;
+        /* Very compact */
     }
 
     .stat-label {
-        font-size: 7px;
-        letter-spacing: 0.5px;
+        font-size: 6px;
+        margin-bottom: 0;
+        letter-spacing: 0;
     }
 
     .stat-value {
-        font-size: 14px;
+        font-size: 11px;
     }
 
-    .health-bar-container {
-        width: 80px;
-        height: 5px;
-        margin-top: 2px;
+    /* Specific row/column spans for key meters */
+    .stats-panel:nth-child(1) {
+        grid-column: span 1;
     }
 
+    /* Health Panel */
+    .stats-panel:nth-child(2) {
+        grid-column: span 1;
+    }
+
+    /* Score Panel */
+    .weapon-info {
+        grid-column: span 1;
+    }
+
+    /* Weapon */
+    .stats-panel:nth-child(4) {
+        grid-column: span 1;
+    }
+
+    /* Sync meter */
+    .stats-panel:nth-child(5) {
+        grid-column: span 1;
+    }
+
+    /* Distance */
+    .stats-panel:nth-child(6) {
+        grid-column: span 1;
+        width: 100%;
+    }
+
+    /* Pause button container */
+
+    #pause-btn {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 9px;
+    }
+
+    .health-bar-container,
     .sync-bar-container {
-        width: 60px;
+        width: 45px;
         height: 4px;
-        margin-top: 2px;
+        margin-top: 0;
     }
 
     #weapon-name {
-        font-size: 10px;
+        font-size: 8px;
+        max-width: 60px;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     #mobile-controls {
@@ -579,44 +635,36 @@ button.joy-btn:active:not(.move-joy) {
     }
 
     .btn-sync {
-        height: 40px;
-        line-height: 40px;
-        width: 220px;
-        font-size: 12px;
-        letter-spacing: 3px;
+        height: 34px;
+        line-height: 34px;
+        width: min(200px, 80vw);
+        font-size: 10px;
+        letter-spacing: 2px;
     }
 
     .go-signal,
     .go-signal1,
     .go-signal2 {
         font-size: 8px;
-        letter-spacing: 4px;
-        margin-bottom: 8px;
+        letter-spacing: 3px;
+        margin-bottom: 4px;
     }
 
     .go-title {
-        font-size: clamp(22px, 6vw, 48px);
-        margin-bottom: 8px;
-        letter-spacing: 3px;
+        font-size: clamp(20px, 5.5vw, 42px);
+        margin-bottom: 4px;
+        letter-spacing: 2px;
     }
 
     .go-stat {
-        font-size: 10px;
-        letter-spacing: 2px;
-        margin: 3px 0;
+        font-size: 9px;
+        letter-spacing: 1px;
+        margin: 2px 0;
     }
 
     .go-btn-group {
-        margin-top: 10px;
-        gap: 7px;
-    }
-
-    .btn-sync {
-        height: 36px;
-        line-height: 36px;
-        width: min(220px, 82vw);
-        font-size: 11px;
-        letter-spacing: 2px;
+        margin-top: 6px;
+        gap: 6px;
     }
 
     .instructions {
@@ -1005,34 +1053,46 @@ button.joy-btn:active:not(.move-joy) {
     }
 
     .hud-top {
-        flex-wrap: wrap;
-        gap: 3px;
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 1fr;
+        gap: 4px;
+        width: 100%;
+        padding: 2px;
     }
 
     .stats-panel {
-        padding: 3px 6px;
+        padding: 4px 6px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        height: 28px;
     }
 
     .stat-label {
-        font-size: 7px;
-        letter-spacing: 0.5px;
+        font-size: 6px;
+        margin-bottom: 0;
     }
 
     .stat-value {
-        font-size: 12px;
+        font-size: 11px;
     }
 
-    .health-bar-container {
-        width: 70px;
-        height: 5px;
+    /* Span full width or specific columns for priority stats */
+    .stats-panel:nth-child(1) {
+        grid-column: span 2;
     }
 
-    .sync-bar-container {
-        width: 60px;
-        height: 4px;
+    /* Integrity */
+    .stats-panel:nth-child(4) {
+        grid-column: span 2;
     }
 
-    #weapon-name {
-        font-size: 10px;
+    /* Sync */
+    .weapon-info {
+        grid-column: span 3;
+        justify-content: center;
     }
+
+    /* Payload */
 }
