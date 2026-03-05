@@ -2293,13 +2293,16 @@ function tick(timestamp) {
         const camTX = player.x - viewW * 0.35 + (mouse.x - (player.x - camera.x + player.w / 2)) * 0.15;
         let camTY = player.y - viewH * 0.5 + (mouse.y - (player.y - camera.y + player.h / 2)) * 0.15;
 
-        // Mobile Floor Protection: Bias camera towards a stable horizon to prevent floor from disappearing on jump
+        // Mobile Floor Protection & Vertical Tracking
         if (isMobile) {
-            camTY = lerp(260, camTY, 0.45); // Keep camera more centered on the action zone
+            // Soft clamp to prevent losing the floor or looking too high into empty space
+            // -300 lets us look up slightly during jumps.
+            // 200 keeps the floor anchored near the bottom of the screen.
+            camTY = Math.max(-300, Math.min(camTY, 200));
         }
 
         camera.x = lerp(camera.x, camTX, 0.12);
-        camera.y = lerp(camera.y, camTY, 0.1);
+        camera.y = lerp(camera.y, camTY, isMobile ? 0.08 : 0.1); // Slightly slower Y-tracking on mobile
 
         // Shake Decay (clamped)
         if (screenShake > 0) {
