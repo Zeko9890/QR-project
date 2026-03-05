@@ -178,6 +178,10 @@ ASSETS.plasma.onerror = () => { ASSETS.plasma.broken = true; };
 ASSETS.cannon.onload = () => { IMAGES_LOADED.cannon = true; };
 ASSETS.cannon.onerror = () => { ASSETS.cannon.broken = true; };
 
+// --- 3.8 DEVICE DETECTION ---
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const isMobile = isTouchDevice && (window.innerWidth < 1024 || window.innerHeight < 600);
+
 // Game Variables
 let player;
 let boss = null;
@@ -192,6 +196,8 @@ const DEBUG_MODE = false; // Set to false for production
 const BOSS_INTERVAL = DEBUG_MODE ? 5000 : 60000;
 const CHECKPOINT_INTERVAL = DEBUG_MODE ? 2000 : 3500;
 let timeScale = 1.0;
+const WORLD_SCALE = isMobile ? 0.72 : 1.0; // Zoom out on mobile to see more world
+const INV_SCALE = 1 / WORLD_SCALE;
 
 // --- 4. INPUT MANAGEMENT ---
 const keys = {};
@@ -221,8 +227,9 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => keys[e.code] = false);
 window.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    mouse.x = e.clientX - rect.left;
-    mouse.y = e.clientY - rect.top;
+    // Map mouse to scaled coordinate space
+    mouse.x = (e.clientX - rect.left) * INV_SCALE;
+    mouse.y = (e.clientY - rect.top) * INV_SCALE;
 });
 window.addEventListener('mousedown', () => mouse.down = true);
 window.addEventListener('mouseup', () => mouse.down = false);
@@ -254,8 +261,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // --- 4.5 MOBILE TOUCH MANAGEMENT ---
-const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-const isMobile = isTouchDevice && (window.innerWidth < 1024 || window.innerHeight < 600);
+// isTouchDevice and isMobile moved to section 3.8
 
 // Force landscape orientation
 if (isMobile && screen.orientation && screen.orientation.lock) {
@@ -411,22 +417,20 @@ if (isTouchDevice) {
     function updateAimTracking(touch) {
         if (!player || !fireJoyRect) return; // Guard for dead state
 
-        const joyCenterX = fireJoyRect.left + fireJoyRect.width / 2;
-        const joyCenterY = fireJoyRect.top + fireJoyRect.height / 2;
-
-        const dx = touch.clientX - joyCenterX;
-        const dy = touch.clientY - joyCenterY;
-
         // Visual position of player in canvas screen coords
         const screenPx = player.x - camera.x + player.w / 2;
         const screenPy = player.y - camera.y + player.h / 2;
 
-        if (Math.hypot(dx, dy) < 10) {
+        // Touch input is usually unscaled relative to the raw viewport
+        const touchX = (touch.clientX - fireJoyRect.left - fireJoyRect.width / 2);
+        const touchY = (touch.clientY - fireJoyRect.top - fireJoyRect.height / 2);
+
+        if (Math.hypot(touchX, touchY) < 10) {
             // Deadzone (center): Aim forward
             mouse.x = screenPx + 1000;
             mouse.y = screenPy;
         } else {
-            const angle = Math.atan2(dy, dx);
+            const angle = Math.atan2(touchY, touchX);
             // Project far ahead to ensure accurate line
             mouse.x = screenPx + Math.cos(angle) * 1000;
             mouse.y = screenPy + Math.sin(angle) * 1000;
@@ -1866,11 +1870,11 @@ function buildWorldSectors(rangeX, unlimited = false) {
         if (!unlimited && sectorsBuilt >= maxSectorsPerFrame) break;
         sectorsBuilt++;
         const platW = random(480, 950);
-        const lastY = platforms.length > 0 ? platforms[platforms.length - 1].y : canvas.height * 0.6;
+        const lastY = platforms.length > 0 ? platforms[platforms.length - 1].y : canvas.height * 0.6 * INV_SCALE;
 
         // Ensure next platform is within jumping range (+/- 160px height difference)
         const platX = nextPlatformX + random(160, 360);
-        const platY = Math.max(canvas.height * 0.25, Math.min(canvas.height * 0.85, lastY + random(-160, 160)));
+        const platY = Math.max(canvas.height * 0.25 * INV_SCALE, Math.min(canvas.height * 0.85 * INV_SCALE, lastY + random(-160, 160)));
 
         platforms.push(new SolidSurface(platX, platY, platW, 45, currentZone));
 
@@ -1883,7 +1887,7 @@ function buildWorldSectors(rangeX, unlimited = false) {
         // Background floating objects (even under the floor)
         for (let i = 0; i < 3; i++) {
             const bx = platX + random(0, platW);
-            const by = random(-200, canvas.height + 600);
+            const by = random(-200, canvas.height * INV_SCALE + 600);
             const bSize = random(10, 40);
             backgroundObjects.push(new BackgroundScrap(bx, by, bSize, i % 2 === 0 ? COLORS.primary : COLORS.secondary, 0));
         }
@@ -1944,7 +1948,7 @@ function reachCheckpoint(x, y) {
     // Glass Shatter Visuals
     const shards = isMobile ? 25 : 60;
     for (let i = 0; i < shards; i++) {
-        const py = Math.random() * canvas.height;
+        const py = Math.random() * canvas.height * INV_SCALE;
         const color = Math.random() > 0.5 ? '#fff' : COLORS.primary;
         // Explode outward from the center line of the wall
         particles.push(new ParticleSystem(
@@ -2108,7 +2112,7 @@ function rebootFromCheckpoint() {
     player = new PlayerTitan();
     player.x = lastDistanceCheckpoint;
     player.y = 100; // Drop in from top
-    camera.x = player.x - canvas.width * 0.35;
+    camera.x = player.x - canvas.width * 0.35 * INV_SCALE;
     camera.y = player.y;
 
     distanceTraveled = lastDistanceCheckpoint; // Fixes distance pausing
@@ -2219,9 +2223,12 @@ function tick(timestamp) {
         if (!player) { gameState = 'START'; startScreen.classList.remove('hidden'); return requestAnimationFrame(tick); }
         player.update(delta);
 
-        // Smooth Multi-Point Camera
-        const camTX = player.x - canvas.width * 0.35 + (mouse.x - canvas.width / 2) * 0.22;
-        const camTY = player.y - canvas.height * 0.5 + (mouse.y - canvas.height / 2) * 0.22;
+        // Smooth Multi-Point Camera (Adjusted for World Scale)
+        const viewW = canvas.width * INV_SCALE;
+        const viewH = canvas.height * INV_SCALE;
+
+        const camTX = player.x - viewW * 0.35 + (mouse.x - (player.x - camera.x + player.w / 2)) * 0.15;
+        const camTY = player.y - viewH * 0.5 + (mouse.y - (player.y - camera.y + player.h / 2)) * 0.15;
         camera.x = lerp(camera.x, camTX, 0.12);
         camera.y = lerp(camera.y, camTY, 0.1);
 
@@ -2275,8 +2282,8 @@ function tick(timestamp) {
 
         // Camera slowly zooms in and follows the falling body
         if (player) {
-            const camTX = player.x - canvas.width * 0.5 + player.w / 2;
-            const camTY = player.y - canvas.height * 0.4;
+            const camTX = player.x - canvas.width * 0.5 * INV_SCALE + player.w / 2;
+            const camTY = player.y - canvas.height * 0.4 * INV_SCALE;
             camera.x = lerp(camera.x, camTX, 0.06);
             camera.y = lerp(camera.y, camTY, 0.06);
         }
@@ -2632,6 +2639,10 @@ function drawFrame(delta) {
     ctx.fillStyle = nightAlpha > 0.5 ? '#000' : COLORS.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // --- APPLY WORLD SCALE ---
+    ctx.save();
+    ctx.scale(WORLD_SCALE, WORLD_SCALE);
+
     // NEURAL OVERDRIVE: WIREFRAME DOMINANCE
     if (isNeuralOverdrive) {
         const gridStep = isMobile ? 80 : 40;
@@ -2639,18 +2650,18 @@ function drawFrame(delta) {
         ctx.lineWidth = 1;
         ctx.globalAlpha = 0.2;
         ctx.beginPath();
-        for (let i = 0; i < canvas.width; i += gridStep) {
-            ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height);
+        for (let i = 0; i < canvas.width * INV_SCALE; i += gridStep) {
+            ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height * INV_SCALE);
         }
-        for (let j = 0; j < canvas.height; j += gridStep) {
-            ctx.moveTo(0, j); ctx.lineTo(canvas.width, j);
+        for (let j = 0; j < canvas.height * INV_SCALE; j += gridStep) {
+            ctx.moveTo(0, j); ctx.lineTo(canvas.width * INV_SCALE, j);
         }
         ctx.stroke();
         ctx.globalAlpha = 1.0;
 
         ctx.fillStyle = '#fff';
         ctx.globalAlpha = 0.05;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, canvas.width * INV_SCALE, canvas.height * INV_SCALE);
         ctx.globalAlpha = 1.0;
     }
 
@@ -2658,7 +2669,7 @@ function drawFrame(delta) {
         // High-Quality Moon
         ctx.save();
         ctx.globalAlpha = nightAlpha;
-        const moonX = canvas.width * 0.82;
+        const moonX = canvas.width * 0.82 * INV_SCALE;
         const moonY = 140;
 
         // Outer glow
@@ -2681,8 +2692,8 @@ function drawFrame(delta) {
         ctx.save();
         ctx.globalAlpha = nightAlpha;
         for (let i = 0; i < 80; i++) {
-            const sx = (i * 213 + worldSeed * 1000) % canvas.width;
-            const sy = (i * 357 + worldSeed * 2000) % canvas.height;
+            const sx = (i * 213 + worldSeed * 1000) % (canvas.width * INV_SCALE);
+            const sy = (i * 357 + worldSeed * 2000) % (canvas.height * INV_SCALE);
             const flicker = 0.5 + Math.sin(Date.now() * 0.003 + i) * 0.5;
             ctx.fillStyle = '#fff';
             ctx.globalAlpha = nightAlpha * flicker;
@@ -2704,9 +2715,9 @@ function drawFrame(delta) {
         { x: 1200, y: 400, s: 2.5, p: 0.25, c: COLORS.secondary }
     ];
     backgroundStars.forEach(s => {
-        let sx = (s.x - camera.x * s.p) % canvas.width;
-        let sy = (s.y - camera.y * s.p * 0.5) % canvas.height;
-        if (sx < 0) sx += canvas.width; if (sy < 0) sy += canvas.height;
+        let sx = (s.x - camera.x * s.p) % (canvas.width * INV_SCALE);
+        let sy = (s.y - camera.y * s.p * 0.5) % (canvas.height * INV_SCALE);
+        if (sx < 0) sx += (canvas.width * INV_SCALE); if (sy < 0) sy += (canvas.height * INV_SCALE);
 
         ctx.fillStyle = s.c;
         ctx.globalAlpha = 0.3 + Math.sin(Date.now() * 0.001 + s.x) * 0.2;
@@ -2762,6 +2773,8 @@ function drawFrame(delta) {
     particles.forEach(p => p.draw());
 
     if (gameState === 'PLAYING' || gameState === 'DYING') player.draw();
+
+    ctx.restore(); // END WORLD SCALE
 
     // UI HUD Layers (Text drawn on top)
     if (gameState !== 'DYING') drawPowerUpBars();
@@ -2826,7 +2839,7 @@ function drawFrame(delta) {
             ctx.fillStyle = '#fff';
             ctx.shadowBlur = 15;
             ctx.shadowColor = '#fff'; // White glow
-            ctx.font = 'italic 900 48px Outfit';
+            ctx.font = `italic 900 ${48 * WORLD_SCALE}px Outfit`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('SYSTEM COMPROMISED', canvas.width / 2, canvas.height / 2);
