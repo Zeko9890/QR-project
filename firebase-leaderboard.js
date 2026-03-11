@@ -11,7 +11,10 @@ import {
     getFirestore,
     collection,
     addDoc,
+    updateDoc,
+    doc,
     query,
+    where,
     orderBy,
     limit,
     getDocs,
@@ -35,16 +38,42 @@ const leaderboardRef = collection(db, "leaderboard");
 
 /**
  * Save a score entry to Firestore.
+ * Ensures one entry per player name.
  */
 async function saveScoreToFirebase(name, playerScore, reason) {
+    if (!name || name === "GUEST_PILOT") return; // Skip guest pilots to keep leaderboard clean
+
     try {
-        await addDoc(leaderboardRef, {
-            name: name || "UNKNOWN",
-            score: playerScore,
-            reason: reason || "ENEMY",
-            timestamp: serverTimestamp()
-        });
-        console.log("[FIREBASE] Score saved:", name, playerScore);
+        // Query for existing document with this name
+        const q = query(leaderboardRef, where("name", "==", name));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+            // Player exists - check score
+            const existingDoc = snapshot.docs[0];
+            const existingData = existingDoc.data();
+
+            if (playerScore > existingData.score) {
+                // New higher score - update document
+                await updateDoc(doc(db, "leaderboard", existingDoc.id), {
+                    score: playerScore,
+                    reason: reason || "ENEMY",
+                    timestamp: serverTimestamp()
+                });
+                console.log("[FIREBASE] High score updated for:", name, playerScore);
+            } else {
+                console.log("[FIREBASE] New score not higher. Skipping update.");
+            }
+        } else {
+            // New player - create entry
+            await addDoc(leaderboardRef, {
+                name: name,
+                score: playerScore,
+                reason: reason || "ENEMY",
+                timestamp: serverTimestamp()
+            });
+            console.log("[FIREBASE] New leaderboard entry created for:", name, playerScore);
+        }
     } catch (err) {
         console.error("[FIREBASE] Save error:", err);
     }

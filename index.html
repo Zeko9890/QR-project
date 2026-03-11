@@ -60,10 +60,21 @@
                     <span class="stat-label">Distance</span>
                     <div id="distance" class="stat-value">0m</div>
                 </div>
+                <div class="stats-panel coin-panel">
+                    <span class="stat-label">Credits</span>
+                    <div class="stat-value coin-value">💠 <span id="hud-coin-count">0</span></div>
+                </div>
                 <div class="stats-panel" style="pointer-events: auto;">
                     <button id="pause-btn" class="pause-trigger" title="Pause Game [P]">PAUSE</button>
                 </div>
             </div>
+
+            <div id="startup-container" class="hidden">
+                <div id="startup-timer">3</div>
+                <div id="startup-powerups"></div>
+            </div>
+
+            <div id="combat-alerts"></div>
 
             <!-- Mobile Controls -->
             <div id="mobile-controls" class="hidden">
@@ -96,6 +107,7 @@
             <div class="go-signal">[ SYSTEM PAUSED ]</div>
             <h1 class="go-title">SYSTEM PAUSE</h1>
             <div class="go-stat go-high">LOCAL RECORD: <span id="pause-high-score">000000</span></div>
+
             <div class="go-btn-group">
                 <button id="resume-btn" class="btn-sync">RESUME LINK</button>
                 <button id="pause-restart-btn" class="btn-sync">RESET SECTOR</button>
@@ -107,6 +119,7 @@
             <div class="go-signal1">[ PROTOCOL ONLINE ]</div>
             <h1 class="go-title">CYBERSTRIKE<br>OVERDRIVE</h1>
             <div class="go-stat">LOCAL RECORD: <span id="start-high-score">000000</span></div>
+
 
             <div class="user-input-container">
                 <label for="username-input" class="stat-label">ENTER NEURAL ID</label>
@@ -124,8 +137,11 @@
                 <div class="key-hint"><span class="key">SHIFT</span> Dash</div>
                 <div class="key-hint"><span class="key">P</span> Pause</div>
             </div>
-            <div class="go-btn-group">
+            <div class="go-btn-group" style="display: flex; gap: 10px; justify-content: center;">
                 <button id="start-lb-btn" class="btn-sync btn-lb">🏆 LEADERBOARD</button>
+                <button id="start-ach-btn" class="btn-sync btn-lb">🏅 ACHIEVEMENTS</button>
+                <button id="start-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒
+                    BLACK MARKET</button>
             </div>
         </div>
 
@@ -140,6 +156,8 @@
                 <button id="restart-btn" class="btn-sync">REBOOT SYSTEM</button>
                 <button id="home-btn" class="btn-sync">BASE COMMAND</button>
                 <button id="over-lb-btn" class="btn-sync btn-lb">🏆 LEADERBOARD</button>
+                <button id="over-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒
+                    BLACK MARKET</button>
             </div>
         </div>
 
@@ -159,6 +177,33 @@
             </div>
         </div>
 
+        <!-- Achievements Overlay -->
+        <div id="achievement-overlay" class="lb-overlay hidden">
+            <div class="lb-overlay-box">
+                <div class="lb-overlay-header">
+                    <div class="lb-title">🏅 NEURAL MILESTONES</div>
+                    <button id="ach-close-btn" class="lb-close">✕</button>
+                </div>
+                <div id="achievement-list" class="ach-list">
+                    <!-- Achievements will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Overlay -->
+        <div id="shop-overlay" class="lb-overlay hidden">
+            <div class="lb-overlay-box">
+                <div class="lb-overlay-header">
+                    <div class="lb-title" style="color: #ffeb3b; text-shadow: 0 0 15px rgba(255, 235, 59, 0.4);">🛒
+                        BLACK MARKET (UPGRADES)</div>
+                    <button id="shop-close-btn" class="lb-close">✕</button>
+                </div>
+                <div id="shop-list" class="ach-list" style="display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Shop Items will be injected here -->
+                </div>
+            </div>
+        </div>
+
         <div id="loading-screen" class="overlay hidden">
             <div class="loading-bg-img"></div>
             <div class="loading-content">
@@ -173,9 +218,20 @@
                 <div class="loading-sublabel" id="loading-sublabel">LOADING SECTOR DATA</div>
             </div>
         </div>
+
+        <div id="global-wallet" class="ach-wallet-container">
+            <span class="wallet-icon">💠</span>
+            <span id="global-wallet-amount" class="wallet-amount">0</span>
+            <div class="wallet-tooltip">
+                <div class="wt-title">NEURAL CREDITS</div>
+                <div class="wt-desc">Premium operational currency. Sync data to exhibit tactical dominance.</div>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="firebase-leaderboard.js"></script>
+    <script src="achievements-system.js"></script>
+    <script src="shop-system.js"></script>
     <script src="game.js"></script>
     <script src="bg3d.js"></script>
 </body>

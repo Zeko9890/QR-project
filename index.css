@@ -162,6 +162,18 @@ canvas {
     text-transform: uppercase;
 }
 
+/* Coin HUD Panel */
+.coin-panel {
+    border-color: rgba(0, 229, 255, 0.4);
+}
+
+.coin-value {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--primary);
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
 /* Hidden Utility */
 .hidden {
     display: none !important;
@@ -785,15 +797,16 @@ button.joy-btn:active:not(.move-joy) {
 }
 
 .lb-overlay-box {
-    width: min(420px, 92vw);
+    width: min(480px, 92vw);
     max-height: 80vh;
-    background: rgba(18, 18, 18, 0.95);
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(15px);
     border: 1px solid rgba(0, 229, 255, 0.4);
-    border-radius: 10px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 30px;
     position: relative;
     overflow-y: auto;
-    box-shadow: 0 0 40px rgba(0, 229, 255, 0.15), inset 0 0 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 50px rgba(0, 229, 255, 0.2), inset 0 0 30px rgba(0, 0, 0, 0.8);
 }
 
 .lb-overlay-box::before {
@@ -802,9 +815,9 @@ button.joy-btn:active:not(.move-joy) {
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 4px;
     background: linear-gradient(90deg, transparent, var(--primary), transparent);
-    border-radius: 10px 10px 0 0;
+    border-radius: 12px 12px 0 0;
 }
 
 .lb-overlay-header {
@@ -838,29 +851,29 @@ button.joy-btn:active:not(.move-joy) {
 
 .lb-title {
     font-family: 'Outfit', sans-serif;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 900;
     color: var(--primary);
-    letter-spacing: 3px;
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+    letter-spacing: 4px;
+    text-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
 }
 
 .lb-header {
     display: grid;
-    grid-template-columns: 36px 1fr 90px;
-    gap: 4px;
-    padding: 0 6px 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 6px;
+    grid-template-columns: 46px 1fr 110px;
+    gap: 8px;
+    padding: 0 10px 12px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 10px;
 }
 
 .lb-rank-h,
 .lb-name-h,
 .lb-score-h {
     font-family: 'Outfit', sans-serif;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
-    color: #555;
+    color: #888;
     letter-spacing: 2px;
     text-transform: uppercase;
 }
@@ -877,12 +890,19 @@ button.joy-btn:active:not(.move-joy) {
 
 .lb-entry {
     display: grid;
-    grid-template-columns: 36px 1fr 90px;
-    gap: 4px;
+    grid-template-columns: 46px 1fr 110px;
+    gap: 8px;
     align-items: center;
-    padding: 8px 6px;
-    border-radius: 4px;
-    transition: background 0.2s;
+    padding: 12px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.lb-entry:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
 }
 
 .lb-entry:nth-child(odd) {
@@ -897,9 +917,9 @@ button.joy-btn:active:not(.move-joy) {
 
 .lb-rank {
     font-family: 'Outfit', sans-serif;
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 900;
-    color: #555;
+    color: #777;
     text-align: center;
 }
 
@@ -918,9 +938,9 @@ button.joy-btn:active:not(.move-joy) {
 
 .lb-name {
     font-family: 'Courier New', monospace;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
-    color: #ccc;
+    color: #eaeaea;
     letter-spacing: 1px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -933,9 +953,9 @@ button.joy-btn:active:not(.move-joy) {
 
 .lb-score-val {
     font-family: 'Outfit', sans-serif;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 900;
-    color: #fff;
+    color: var(--primary);
     text-align: right;
     letter-spacing: 1px;
 }
@@ -1156,5 +1176,504 @@ button.joy-btn:active:not(.move-joy) {
     letter-spacing: 2px;
     text-transform: uppercase;
     text-align: center;
-    min-height: 14px;
+}
+
+/* ========================================
+   ACHIEVEMENT SYSTEM V2
+   ======================================== */
+#achievement-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Wallet Styles */
+.ach-wallet-container {
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    display: none;
+    /* Hidden by default */
+    align-items: center;
+    background: rgba(10, 10, 10, 0.85);
+    border: 2px solid var(--primary);
+    border-radius: 25px;
+    padding: 8px 18px;
+    cursor: help;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 2500;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+}
+
+#start-screen:not(.hidden)~#global-wallet,
+#game-over-screen:not(.hidden)~#global-wallet,
+#achievement-overlay:not(.hidden)~#global-wallet {
+    display: flex;
+}
+
+.wallet-pulse {
+    transform: scale(1.15);
+    border-color: #fff;
+    box-shadow: 0 0 30px var(--primary);
+}
+
+.ach-wallet-container:hover {
+    background: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+}
+
+.wallet-icon {
+    font-size: 16px;
+    margin-right: 6px;
+    text-shadow: 0 0 5px var(--primary);
+}
+
+.wallet-amount {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--primary);
+    letter-spacing: 1px;
+    transition: all 0.15s ease;
+}
+
+/* Tooltip Styles */
+.wallet-tooltip {
+    position: absolute;
+    top: 140%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid var(--primary);
+    padding: 12px;
+    width: 220px;
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    z-index: 2500;
+    pointer-events: none;
+    backdrop-filter: blur(5px);
+}
+
+.wallet-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 10px;
+    height: 10px;
+    background: rgba(10, 10, 10, 0.95);
+    border-left: 1px solid var(--primary);
+    border-top: 1px solid var(--primary);
+}
+
+.ach-wallet-container:hover .wallet-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.wt-title {
+    font-size: 12px;
+    color: #fff;
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+.wt-desc {
+    font-size: 11px;
+    color: #aaa;
+    line-height: 1.4;
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+}
+
+/* Flying Coins Animation */
+.flying-coin {
+    position: fixed;
+    font-size: 28px;
+    z-index: 3000;
+    pointer-events: none;
+    text-shadow: 0 0 15px var(--primary);
+    transition: transform 0.2s ease-out, opacity 0.2s ease;
+    opacity: 0;
+}
+
+
+.achievement-notification {
+    width: 340px;
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid var(--primary);
+    border-left: 5px solid var(--primary);
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 0 30px rgba(0, 229, 255, 0.2);
+    animation: achSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    transition: all 0.5s ease;
+    backdrop-filter: blur(10px);
+}
+
+@keyframes achSlideIn {
+    from {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.ach-header {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--secondary);
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
+.ach-title {
+    font-size: 16px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.ach-desc {
+    font-size: 12px;
+    color: #bbb;
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+.ach-reward-info {
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.reward-animation {
+    color: var(--primary);
+    font-size: 20px;
+    font-weight: 900;
+    text-shadow: 0 0 15px var(--primary);
+    text-align: center;
+    animation: floatUpFloatOut 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    z-index: 3100;
+}
+
+@keyframes floatUpFloatOut {
+    0% {
+        transform: translateY(0) scale(0.5);
+        opacity: 0;
+    }
+
+    20% {
+        transform: translateY(-20px) scale(1);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translateY(-40px) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-60px) scale(1.2);
+        opacity: 0;
+    }
+}
+
+/* Achievement Panel Styles */
+#achievement-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding-right: 10px;
+}
+
+.ach-card {
+    display: flex;
+    align-items: center;
+    background: rgba(18, 18, 18, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.ach-card.completed {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+    background: rgba(0, 229, 255, 0.05);
+}
+
+.ach-card.claimed {
+    border-color: rgba(255, 255, 255, 0.2);
+    opacity: 0.6;
+}
+
+.ach-card.locked {
+    filter: grayscale(1);
+    opacity: 0.5;
+}
+
+.ach-card.in_progress {
+    border-color: rgba(0, 229, 255, 0.3);
+}
+
+.ach-icon {
+    font-size: 32px;
+    margin-right: 15px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.ach-body {
+    flex-grow: 1;
+}
+
+.ach-card-title {
+    font-size: 16px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 1px;
+}
+
+.ach-card.completed .ach-card-title {
+    color: var(--primary);
+}
+
+.ach-card-desc {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.ach-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ach-progress-bar {
+    flex-grow: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.ach-progress-fill {
+    height: 100%;
+    background: var(--secondary);
+    box-shadow: 0 0 5px var(--secondary);
+    transition: width 0.3s ease;
+}
+
+.ach-card.completed .ach-progress-fill,
+.ach-card.claimed .ach-progress-fill {
+    background: var(--primary);
+    box-shadow: 0 0 5px var(--primary);
+}
+
+.ach-progress-text {
+    font-size: 10px;
+    color: #fff;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: right;
+}
+
+.ach-action-area {
+    margin-left: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.ach-reward-amount {
+    font-size: 14px;
+    color: var(--primary);
+    font-weight: 900;
+    text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+}
+
+.ach-action-btn {
+    background: none;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 6px 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.ach-action-btn.collect-btn {
+    background: rgba(0, 229, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.ach-action-btn.collect-btn:hover {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 20px var(--primary);
+}
+
+.ach-action-btn.claimed-btn {
+    border-color: #555;
+    color: #555;
+    background: transparent;
+    cursor: default;
+    box-shadow: none;
+}
+
+.shop-card {
+    border-color: rgba(255, 235, 59, 0.3);
+}
+
+.shop-card.completed {
+    border-color: #ffeb3b;
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.2);
+    background: rgba(255, 235, 59, 0.05);
+}
+
+.shop-card .collect-btn {
+    border-color: #ffeb3b;
+    color: #ffeb3b;
+    background: rgba(255, 235, 59, 0.1);
+}
+
+.shop-card .collect-btn:hover {
+    background: #ffeb3b;
+    color: #000;
+    box-shadow: 0 0 15px #ffeb3b;
+}
+
+.shop-section-title {
+    font-family: 'Outfit', sans-serif;
+    color: #888;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.cons-owned {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #ffeb3b;
+    background: rgba(255, 235, 59, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 10px;
+    font-weight: 700;
+}
+
+.wallet-reject {
+    border-color: #f44336 !important;
+    background: rgba(244, 67, 54, 0.2) !important;
+    box-shadow: 0 0 20px #f44336 !important;
+    transform: translateX(-10px);
+}
+
+/* Startup Powerup Styles */
+#startup-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    z-index: 1500;
+    pointer-events: auto;
+}
+
+#startup-timer {
+    font-size: 80px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 20px var(--primary);
+    font-family: 'Outfit', sans-serif;
+    animation: pulseScale 1s infinite;
+}
+
+#startup-powerups {
+    display: flex;
+    gap: 20px;
+}
+
+.startup-icon {
+    width: 70px;
+    height: 70px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+}
+
+.startup-icon:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 25px var(--primary);
+    background: rgba(0, 229, 255, 0.2);
+}
+
+.startup-icon .count-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: #ffeb3b;
+    color: #000;
+    font-weight: 900;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-family: 'Outfit', sans-serif;
+}
+
+@keyframes pulseScale {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }

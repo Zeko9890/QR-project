@@ -121,6 +121,18 @@ let backgroundObjects = []; // Decorative floating objects
 let weatherSystems = []; // Rain/Embers
 let urbanParallax = []; // Giant Skyscrapers
 let checkpoints = []; // Physical checkpoint walls
+let backgroundTexts = []; // Large subtle rank upgrade text
+let currentRankIndex = 0;
+let coins = []; // Neural credit coins spawned in the world
+let sessionCredits = 0; // Credits collected this run
+
+const RANKS = [
+    { name: 'COMPROMISED', minScore: 0, color: '#ff0055' },
+    { name: 'OPERATIVE', minScore: 5000, color: '#00e5ff' },
+    { name: 'TITAN HUNTER', minScore: 15000, color: '#ff1744' },
+    { name: 'NEURAL ARCHITECT', minScore: 40000, color: '#9d00ff' },
+    { name: 'OVERDRIVE GOD', minScore: 100000, color: '#ffffff' }
+];
 
 // --- 3.5 ASSET LOADER ---
 const ASSETS = {
@@ -201,17 +213,55 @@ let lastDistanceCheckpoint = 0;
 let lastCheckpointSpawnX = 0;
 let lastCheckpointKillScore = 0;
 let currentZone = 1;
-const DEBUG_MODE = false; // Set to false for production
-const BOSS_INTERVAL = DEBUG_MODE ? 5000 : 60000;
-const CHECKPOINT_INTERVAL = DEBUG_MODE ? 2000 : 15000;
+let isStartupPhase = false;
+let startupTimer = 0;
+const STARTUP_DURATION = 3.0;
+
+const DEBUG_MODE = false;
+const BOSS_INTERVAL = 60000;
+const CHECKPOINT_INTERVAL = 15000;
 let timeScale = 1.0;
-const WORLD_SCALE = isMobile ? 0.72 : 1.0; // Zoom out on mobile to see more world
+const WORLD_SCALE = isMobile ? 0.72 : 1.0;
 const INV_SCALE = 1 / WORLD_SCALE;
 
 // --- 4. INPUT MANAGEMENT ---
 const keys = {};
 const mouse = { x: 0, y: 0, down: false };
 
+// UI Bindings for Achievements & Shop
+const achOverlay = document.getElementById('achievement-overlay');
+const achCloseBtn = document.getElementById('ach-close-btn');
+const startAchBtn = document.getElementById('start-ach-btn');
+
+const shopOverlay = document.getElementById('shop-overlay');
+const shopCloseBtn = document.getElementById('shop-close-btn');
+const startShopBtn = document.getElementById('start-shop-btn');
+const overShopBtn = document.getElementById('over-shop-btn');
+
+if (startAchBtn) {
+    startAchBtn.addEventListener('click', () => {
+        if (window.renderAchievementPanel) window.renderAchievementPanel();
+        achOverlay.classList.remove('hidden');
+    });
+}
+if (achCloseBtn) {
+    achCloseBtn.addEventListener('click', () => achOverlay.classList.add('hidden'));
+}
+if (startShopBtn) {
+    startShopBtn.addEventListener('click', () => {
+        if (window.renderShopPanel) window.renderShopPanel();
+        shopOverlay.classList.remove('hidden');
+    });
+}
+if (overShopBtn) {
+    overShopBtn.addEventListener('click', () => {
+        if (window.renderShopPanel) window.renderShopPanel();
+        shopOverlay.classList.remove('hidden');
+    });
+}
+if (shopCloseBtn) {
+    shopCloseBtn.addEventListener('click', () => shopOverlay.classList.add('hidden'));
+}
 window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     if (e.code === 'KeyP') togglePause();
@@ -572,6 +622,45 @@ class FloatingScore {
         ctx.font = `900 ${this.size}px Outfit`;
         ctx.textAlign = 'center';
         ctx.fillText(this.text, this.x - camera.x, this.y - camera.y);
+        ctx.restore();
+    }
+}
+
+/**
+ * Background Large Notification (Clean & Smooth)
+ */
+class BackgroundText {
+    constructor(text, color) {
+        this.text = text;
+        this.color = color;
+        this.life = 4.0;
+        this.maxLife = 4.0;
+        this.y = canvas.height * 0.45; // Center-ish
+        this.x = canvas.width * 0.5;
+        this.opacity = 0;
+    }
+    update(dt) {
+        this.life -= dt;
+        // Fade in quickly, stay, then fade out
+        if (this.life > 3.5) this.opacity = lerp(this.opacity, 0.4, 0.1);
+        else if (this.life < 1.0) this.opacity = lerp(this.opacity, 0, 0.05);
+
+        this.y -= 15 * dt; // Slow drift
+    }
+    draw() {
+        if (this.opacity <= 0.01) return;
+        ctx.save();
+        ctx.globalAlpha = this.opacity;
+        ctx.fillStyle = this.color;
+        ctx.font = `900 ${isMobile ? 60 : 100}px Outfit`;
+        ctx.textAlign = 'center';
+        ctx.letterSpacing = "10px";
+        ctx.fillText(this.text, this.x, this.y);
+
+        // Sub-text
+        ctx.font = `600 ${isMobile ? 20 : 30}px Outfit`;
+        ctx.letterSpacing = "4px";
+        ctx.fillText("UNIT STATUS: UPGRADED", this.x, this.y + (isMobile ? 40 : 60));
         ctx.restore();
     }
 }
@@ -1310,8 +1399,8 @@ class HostileUnit {
         this.x = x; this.y = y;
         this.w = 48; this.h = 48; // Scaled up from 42 for better presence
         this.model = model;
-        this.integrity = model === 'SNIPER' ? 45 : (model === 'TANK' ? 200 : 90); // Harder enemies
-        this.recharge = random(1.0, 3.5); // Faster firing
+        this.integrity = model === 'SNIPER' ? 60 : (model === 'TANK' ? 250 : 120); // Harder enemies
+        this.recharge = random(0.5, 2.0); // Faster initial firing
         this.oscOffset = Math.random() * 8;
         this.hasExpired = false;
         this.baseX = x;
@@ -1330,13 +1419,12 @@ class HostileUnit {
             this.x -= 80 * distMod * dt; // Slow advance
         }
 
-        // Tactical Range Check
         this.recharge -= dt;
         if (this.recharge <= 0) {
             const distance = Math.hypot(titan.x - this.x, titan.y - this.y);
             if (distance < 900) {
                 this.executeFireSequence(titan);
-                this.recharge = this.model === 'SNIPER' ? 3.0 : 1.8; // Aggressive recharge
+                this.recharge = this.model === 'SNIPER' ? 2.5 : (this.model === 'TANK' ? 3.5 : 1.2); // Differential fire rates
             }
         }
     }
@@ -1908,7 +1996,7 @@ function buildWorldSectors(rangeX, unlimited = false) {
         }
 
         // Logistics Population
-        if (Math.random() > 0.93) {
+        if (Math.random() > 0.96) { // Decreased spawn rate
             pickups.push({ posX: platX + platW / 2, posY: platY - 50, model: 'SPREAD', isFound: false });
         }
 
@@ -1918,9 +2006,82 @@ function buildWorldSectors(rangeX, unlimited = false) {
         }
 
         // Randomly spawn special armaments
-        if (Math.random() > 0.95) {
+        if (Math.random() > 0.98) { // Decreased spawn rate
             const types = ['PLASMA', 'HEAVY'];
             pickups.push({ posX: platX + random(50, platW - 50), posY: platY - 50, model: types[Math.floor(Math.random() * 2)], isFound: false });
+        }
+
+        // NEURAL CREDIT COINS - lying on floor and scattered in air
+        if (Math.random() > 0.2) { // Increased spawn rate
+            const coinFormation = Math.random();
+            const coinValue = Math.max(1, Math.floor(currentZone * 0.5) + 1);
+
+            if (coinFormation < 0.35) {
+                // Ground flush line (lying directly on the floor)
+                const baseY = platY - 15;
+                const count = Math.floor(random(4, 9));
+                const startX = platX + random(50, Math.max(80, platW - count * 45));
+                for (let ci = 0; ci < count; ci++) {
+                    coins.push({
+                        x: startX + ci * 45,
+                        y: baseY,
+                        value: coinValue,
+                        collected: false,
+                        bobOffset: 0, // No bob, lying flat
+                        sparkle: Math.random()
+                    });
+                }
+            } else if (coinFormation < 0.55) {
+                // Arc formation (coins in a jump arc in the air)
+                const baseY = platY - 40;
+                const count = Math.floor(random(4, 8));
+                const startX = platX + random(60, Math.max(80, platW - count * 50));
+                for (let ci = 0; ci < count; ci++) {
+                    const t = ci / (count - 1);
+                    const arcY = baseY - Math.sin(t * Math.PI) * random(80, 160);
+                    coins.push({
+                        x: startX + ci * 50,
+                        y: arcY,
+                        value: coinValue,
+                        collected: false,
+                        bobOffset: Math.random() * Math.PI * 2,
+                        sparkle: Math.random()
+                    });
+                }
+            } else if (coinFormation < 0.75) {
+                // Scattered in the air (random heights above platform)
+                const count = Math.floor(random(3, 7));
+                for (let ci = 0; ci < count; ci++) {
+                    coins.push({
+                        x: platX + random(50, platW - 50),
+                        y: platY - random(80, 250), // Random air height
+                        value: coinValue * 2,
+                        collected: false,
+                        bobOffset: Math.random() * Math.PI * 2,
+                        sparkle: Math.random()
+                    });
+                }
+            } else {
+                // Gap floaters (coins suspended in the air over the empty gap before this platform)
+                // This gives them coins "in the air" between jumps
+                if (platX > 500) { // Don't do it on the very first platform
+                    const gapWidth = Math.min(400, platX - (nextPlatformX ? nextPlatformX : platX - 200));
+                    if (gapWidth > 100) {
+                        const count = Math.floor(random(2, 5));
+                        const gapStartX = platX - gapWidth;
+                        for (let ci = 0; ci < count; ci++) {
+                            coins.push({
+                                x: gapStartX + random(40, gapWidth - 40),
+                                y: platY - random(20, 120),
+                                value: coinValue * 3,
+                                collected: false,
+                                bobOffset: Math.random() * Math.PI * 2,
+                                sparkle: Math.random()
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         nextPlatformX = platX + platW;
@@ -2075,6 +2236,9 @@ function activateNeuralOverdrive() {
     uiLayer.classList.add('overdrive-active', 'neural-overdrive');
     triggerCombatAlert("NEURAL OVERDRIVE: TRANSCENDENCE ACTIVE", COLORS.primary, "⚡");
     AudioFX.bossEntry(); // Use a heavy sound
+
+    // Achievement: Overdrive
+    if (window.checkAchievementConditions) window.checkAchievementConditions('OVERDRIVE_ACTIVATE');
 }
 
 // --- 13. SYSTEM ORCHESTRATION ---
@@ -2082,6 +2246,7 @@ function rebootSystem() {
     player = new PlayerTitan();
     platforms = []; particles = []; bullets = []; enemies = []; pickups = [];
     floatingTexts = []; destructibles = []; alerts = []; checkpoints = [];
+    coins = []; sessionCredits = 0;
     boss = null;
     score = 0; killScore = 0;
     syncFill.style.width = '0%';
@@ -2102,6 +2267,8 @@ function rebootSystem() {
     healthFill.style.width = '100%';
     scoreEl.innerText = "000000";
     if (distanceEl) distanceEl.innerText = "0m";
+    const hudCoinEl = document.getElementById('hud-coin-count');
+    if (hudCoinEl) hudCoinEl.innerText = '0';
     document.body.classList.remove('danger');
 
     // Deployment Platform
@@ -2110,10 +2277,86 @@ function rebootSystem() {
 
     buildWorldSectors(6000, true);
 
+    // Initial Startup Phase (Subway Surfers style)
+    initStartupPhase();
+
     // Init Weather
     weatherSystems = [];
 
     if (isTouchDevice) mobileControls.classList.remove('hidden');
+    currentRankIndex = 0;
+    backgroundTexts = [];
+
+    // Achievement: Game Start
+    if (window.checkAchievementConditions) window.checkAchievementConditions('GAME_START');
+}
+
+function initStartupPhase() {
+    const owned = window.getOwnedConsumables ? window.getOwnedConsumables() : [];
+    if (owned.length === 0) {
+        isStartupPhase = false;
+        document.getElementById('startup-container').classList.add('hidden');
+        return;
+    }
+
+    isStartupPhase = true;
+    startupTimer = STARTUP_DURATION;
+
+    const container = document.getElementById('startup-container');
+    const pList = document.getElementById('startup-powerups');
+
+    if (container && pList) {
+        pList.innerHTML = '';
+        owned.forEach(item => {
+            const btn = document.createElement('div');
+            btn.className = 'startup-icon';
+            btn.innerHTML = `${item.icon} <span class="count-badge">${item.owned}</span>`;
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                useStartupPowerup(item.key);
+            };
+            pList.appendChild(btn);
+        });
+        container.classList.remove('hidden');
+    }
+}
+
+function useStartupPowerup(key) {
+    if (!isStartupPhase) return;
+
+    if (window.consumeItem && window.consumeItem(key)) {
+        if (key === 'aegisArmor') {
+            player.hasArmorShield = true;
+            triggerCombatAlert("AEGIS PLATING DEPLOYED", COLORS.primary, "🛡");
+        } else if (key === 'headStart') {
+            player.x = 5000;
+            camera.x = player.x - canvas.width * 0.35 * INV_SCALE;
+            distanceTraveled = 5000;
+            currentZone = 2;
+            nextPlatformX = 5000;
+            platforms.push(new SolidSurface(5000 - 500, 500, 1800, 90, currentZone));
+            triggerCombatAlert("HYPERSPACE INITIATED: 5000m", COLORS.primary, "🚀");
+        }
+
+        // Refresh UI
+        const owned = window.getOwnedConsumables();
+        const pList = document.getElementById('startup-powerups');
+        if (pList) {
+            pList.innerHTML = '';
+            owned.forEach(item => {
+                const btn = document.createElement('div');
+                btn.className = 'startup-icon';
+                btn.innerHTML = `${item.icon} <span class="count-badge">${item.owned}</span>`;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    useStartupPowerup(item.key);
+                };
+                pList.appendChild(btn);
+            });
+        }
+
+        if (window.AudioFX && window.AudioFX.pickup) window.AudioFX.pickup();
+    }
 }
 
 function rebootFromCheckpoint() {
@@ -2136,6 +2379,7 @@ function rebootFromCheckpoint() {
     // Reset Environment & UI
     platforms = []; particles = []; bullets = []; enemies = []; pickups = [];
     floatingTexts = []; destructibles = []; alerts = []; checkpoints = [];
+    coins = [];
     boss = null;
     syncFill.style.width = '0%';
     uiLayer.classList.remove('overdrive-active', 'neural-overdrive');
@@ -2159,6 +2403,13 @@ function rebootFromCheckpoint() {
     buildWorldSectors(lastDistanceCheckpoint + 6000, true);
 
     if (isTouchDevice) mobileControls.classList.remove('hidden');
+
+    // Restore rank based on score
+    currentRankIndex = 0;
+    for (let i = 0; i < RANKS.length; i++) {
+        if (score >= RANKS[i].minScore) currentRankIndex = i;
+    }
+    backgroundTexts = [];
 }
 
 // --- LEADERBOARD SYSTEM (Firebase Bridge) ---
@@ -2241,6 +2492,9 @@ function initiateSystemHalt(reason = 'ENEMY') {
     // Save to leaderboard
     saveToLeaderboard(playerName, score, reason);
 
+    // Update wallet display with session credits
+    if (window.updateCurrencyDisplay) window.updateCurrencyDisplay();
+
     // Clear all stuck inputs
     clearAllInputs();
     document.body.classList.remove('danger');
@@ -2297,12 +2551,15 @@ function tick(timestamp) {
         if (isMobile) {
             // Soft clamp to prevent losing the floor or looking too high into empty space
             // -300 lets us look up slightly during jumps.
-            // 200 keeps the floor anchored near the bottom of the screen.
-            camTY = Math.max(-300, Math.min(camTY, 200));
+            // Increased from 200 to 450 to keep the floor visible during high jumps.
+            camTY = Math.max(-300, Math.min(camTY, 450));
         }
 
         camera.x = lerp(camera.x, camTX, 0.12);
         camera.y = lerp(camera.y, camTY, isMobile ? 0.08 : 0.1); // Slightly slower Y-tracking on mobile
+
+        // Achievement: Distance
+        if (window.checkAchievementConditions) window.checkAchievementConditions('DISTANCE_UPDATE', { distance: distanceTraveled });
 
         // Shake Decay (clamped)
         if (screenShake > 0) {
@@ -2336,6 +2593,24 @@ function tick(timestamp) {
         player.updateVisuals(delta);
 
         if (screenFlash > 0) screenFlash -= delta * 4;
+
+        // Startup Phase Logic
+        if (isStartupPhase) {
+            startupTimer -= delta;
+            const timerEl = document.getElementById('startup-timer');
+            if (timerEl) timerEl.innerText = Math.ceil(startupTimer);
+
+            if (startupTimer <= 0) {
+                isStartupPhase = false;
+                document.getElementById('startup-container').classList.add('hidden');
+            }
+        }
+
+        // Update Background Texts
+        for (let i = backgroundTexts.length - 1; i >= 0; i--) {
+            backgroundTexts[i].update(delta);
+            if (backgroundTexts[i].life <= 0) backgroundTexts.splice(i, 1);
+        }
     }
 
     // --- DYING STATE: Cinematic Death Sequence ---
@@ -2543,13 +2818,13 @@ function handleEntityDynamics(delta) {
             }
 
             if (pu.model === 'RAPID_FIRE') {
-                player.powerUps.rapidFire = 8.0;
+                player.powerUps.rapidFire = window.getUpgradeDuration ? window.getUpgradeDuration('rapidFire') : 4.0;
                 triggerCombatAlert("STRIKE CAPACITY OVERLOAD", COLORS.accent, "🔥");
             } else if (pu.model === 'SPEED') {
-                player.powerUps.speedBoost = 8.0;
+                player.powerUps.speedBoost = window.getUpgradeDuration ? window.getUpgradeDuration('speedBoost') : 4.0;
                 triggerCombatAlert("OVERDRIVE ENGAGED", COLORS.primary, "⚡");
             } else if (pu.model === 'SHIELD') {
-                player.powerUps.shield = 10.0;
+                player.powerUps.shield = window.getUpgradeDuration ? window.getUpgradeDuration('shield') : 5.0;
                 triggerCombatAlert("NEGATION FIELD STABLE", COLORS.primary, "🛡");
             } else if (pu.model === 'PLASMA' || pu.model === 'HEAVY') {
                 player.activeArmament = pu.model;
@@ -2559,6 +2834,51 @@ function handleEntityDynamics(delta) {
             }
             fulfillPickup(pu, i);
             break;
+        }
+    }
+
+    // NEURAL CREDIT COIN COLLECTION
+    const magnetRange = isNeuralOverdrive ? 180 : 90;
+    const collectRange = 30;
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
+        if (coin.collected) continue;
+
+        const dx = (player.x + player.w / 2) - coin.x;
+        const dy = (player.y + player.h / 2) - coin.y;
+        const dist = Math.hypot(dx, dy);
+
+        // Magnet effect: pull coins toward player
+        if (dist < magnetRange && dist > collectRange) {
+            const pullStrength = (1 - dist / magnetRange) * 600 * delta;
+            coin.x += (dx / dist) * pullStrength;
+            coin.y += (dy / dist) * pullStrength;
+        }
+
+        // Collect coin
+        if (dist < collectRange + 30) {
+            coin.collected = true;
+            const coinVal = isNeuralOverdrive ? coin.value * 2 : coin.value;
+            sessionCredits += coinVal;
+
+            // Add to persistent neural credits via achievements system
+            if (window.addNeuralCredits) window.addNeuralCredits(coinVal);
+
+            // Visual feedback
+            emitParticles(coin.x, coin.y, 'BITS', COLORS.primary, 6, 150);
+            floatingTexts.push(new FloatingScore(coin.x, coin.y, `+${coinVal}💠`, COLORS.primary, 16));
+
+            // Update HUD counter
+            const hudCoinEl = document.getElementById('hud-coin-count');
+            if (hudCoinEl) hudCoinEl.innerText = sessionCredits;
+
+            // Subtle pickup chime (higher pitch than regular pickup)
+            if (audioCtx && audioCtx.state !== 'suspended') {
+                playDynamicSound(1200 + Math.random() * 400, 'sine', 0.06, 0.04, 600);
+            }
+
+            // Remove coin from array
+            coins.splice(i, 1);
         }
     }
 
@@ -2575,6 +2895,7 @@ function handleEntityDynamics(delta) {
         if (alerts[i].life <= 0) alerts.splice(i, 1);
     }
     backgroundObjects.forEach(bo => bo.update(delta));
+    backgroundTexts.forEach(bt => bt.update(delta));
 
     if (player.glitchIntensity > 0) player.glitchIntensity -= delta * 2;
 }
@@ -2587,6 +2908,27 @@ function flagEnemyKill(en) {
     emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'NORMAL', COLORS.secondary, 30, 450);
     emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'BITS', '#fff', 10, 250);
     floatingTexts.push(new FloatingScore(en.x + en.w / 2, en.y, `+${Math.floor(gain)}`, COLORS.white, 22 + comboCount));
+
+    // Achievement: Kill + Combo
+    if (window.checkAchievementConditions) {
+        window.checkAchievementConditions('ENEMY_KILL', { type: en.model });
+        window.checkAchievementConditions('COMBO_CHANGE', { combo: comboCount });
+    }
+
+    // Drop Neural Credit coins from enemies
+    const dropCount = Math.floor(random(2, 5));
+    const coinVal = en.model === 'SNIPER' ? 3 : en.model === 'TANK' ? 4 : 2;
+    for (let dc = 0; dc < dropCount; dc++) {
+        coins.push({
+            x: en.x + en.w / 2 + random(-40, 40),
+            y: en.y + en.h / 2 + random(-40, 20),
+            value: coinVal,
+            collected: false,
+            bobOffset: Math.random() * Math.PI * 2,
+            sparkle: Math.random()
+        });
+    }
+
     if (!isNeuralOverdrive) {
         neuralSync = Math.min(100, neuralSync + 2 + (comboCount * 0.5));
         syncFill.style.width = `${neuralSync}%`;
@@ -2612,6 +2954,9 @@ function finalizeBoss() {
     emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, 'SMOKE', '#000', 30, 200);
     floatingTexts.push(new FloatingScore(boss.x + boss.w / 2, boss.y, `TITAN ERADICATED +${hugeGain}`, COLORS.primary, 45));
 
+    // Achievement: Boss Defeat
+    if (window.checkAchievementConditions) window.checkAchievementConditions('BOSS_DEFEAT');
+
     // DROP BUFFS
     for (let i = 0; i < 3; i++) {
         pickups.push({
@@ -2619,6 +2964,19 @@ function finalizeBoss() {
             posY: boss.y + boss.h / 2 + random(-100, 100),
             model: 'SPREAD',
             isFound: false
+        });
+    }
+
+    // DROP NEURAL CREDIT COIN SHOWER (Boss reward)
+    const bossDropCount = Math.floor(random(15, 21));
+    for (let bc = 0; bc < bossDropCount; bc++) {
+        coins.push({
+            x: boss.x + boss.w / 2 + random(-150, 150),
+            y: boss.y + boss.h / 2 + random(-150, 50),
+            value: 10 + Math.floor(currentZone * 2),
+            collected: false,
+            bobOffset: Math.random() * Math.PI * 2,
+            sparkle: Math.random()
         });
     }
 
@@ -2668,6 +3026,7 @@ function garbageCollection() {
     if (urbanParallax.length > (isMobile ? 8 : 20)) urbanParallax = urbanParallax.filter(s => s.x + s.w > camera.x - 3000);
     if (floatingTexts.length > 40) floatingTexts.splice(0, floatingTexts.length - 40); // Hard bounds
     if (weatherSystems.length > 200) weatherSystems.splice(0, weatherSystems.length - 200); // Hard bounds
+    if (coins.length > (isMobile ? 60 : 120)) coins = coins.filter(c => !c.collected && c.x > player.x - cleanDist);
 }
 
 function processScoring(delta) {
@@ -2696,6 +3055,21 @@ function processScoring(delta) {
     score = distScore + killScore;
     scoreEl.innerText = score.toString().padStart(6, '0');
     if (distanceEl) distanceEl.innerText = `${distScore}m`;
+
+    // Check for Rank Upgrade
+    if (currentRankIndex < RANKS.length - 1) {
+        const nextRank = RANKS[currentRankIndex + 1];
+        if (score >= nextRank.minScore) {
+            currentRankIndex++;
+            backgroundTexts.push(new BackgroundText(nextRank.name, nextRank.color));
+            triggerCombatAlert(`UNIT STATUS UPGRADED: ${nextRank.name}`, nextRank.color, "⚡");
+            AudioFX.bossEntry(); // Impact sound
+            screenFlash = 0.3;
+        }
+    }
+
+    // Achievement: Score
+    if (window.checkAchievementConditions) window.checkAchievementConditions('SCORE_UPDATE', { score: score });
 }
 
 /**
@@ -2809,6 +3183,9 @@ function drawFrame(delta) {
     // Urban World
     urbanParallax.forEach(up => up.draw());
 
+    // Background Texts (behind everything else)
+    backgroundTexts.forEach(bt => bt.draw());
+
     // Entity Render Stack
     backgroundObjects.forEach(bo => bo.draw());
     platforms.forEach(p => p.draw());
@@ -2838,6 +3215,68 @@ function drawFrame(delta) {
                 ctx.restore();
             }
         }
+    });
+
+    // NEURAL CREDIT COINS RENDERING
+    const now = Date.now();
+    coins.forEach(coin => {
+        if (coin.collected) return;
+        const bobY = Math.sin(now * 0.004 + coin.bobOffset) * 6;
+        const screenX = coin.x - camera.x;
+        const screenY = coin.y - camera.y + bobY;
+
+        // Skip if off-screen
+        if (screenX < -30 || screenX > canvas.width * INV_SCALE + 30 ||
+            screenY < -30 || screenY > canvas.height * INV_SCALE + 30) return;
+
+        const coinSize = 10 + (coin.value > 3 ? 4 : coin.value > 1 ? 2 : 0);
+        const glowIntensity = coin.value > 3 ? 20 : coin.value > 1 ? 12 : 8;
+        const rotation = now * 0.003 + coin.bobOffset;
+
+        ctx.save();
+        ctx.translate(screenX, screenY);
+
+        // Glow
+        if (!isMobile) {
+            ctx.shadowBlur = glowIntensity;
+            ctx.shadowColor = COLORS.primary;
+        }
+
+        // Outer diamond
+        ctx.rotate(rotation);
+        ctx.fillStyle = COLORS.primary;
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(0, -coinSize);
+        ctx.lineTo(coinSize * 0.7, 0);
+        ctx.lineTo(0, coinSize);
+        ctx.lineTo(-coinSize * 0.7, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner highlight
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.5 + Math.sin(now * 0.006 + coin.sparkle * 10) * 0.3;
+        const innerSize = coinSize * 0.4;
+        ctx.beginPath();
+        ctx.moveTo(0, -innerSize);
+        ctx.lineTo(innerSize * 0.7, 0);
+        ctx.lineTo(0, innerSize);
+        ctx.lineTo(-innerSize * 0.7, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // Sparkle burst (occasional)
+        if (Math.sin(now * 0.005 + coin.sparkle * 20) > 0.92) {
+            ctx.globalAlpha = 0.8;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(-1, -coinSize - 4, 2, 5);
+            ctx.fillRect(-1, coinSize - 1, 2, 5);
+            ctx.fillRect(-coinSize - 4, -1, 5, 2);
+            ctx.fillRect(coinSize - 1, -1, 5, 2);
+        }
+
+        ctx.restore();
     });
 
     enemies.forEach(e => { if (!e.hasExpired) e.draw(); });
@@ -3003,9 +3442,9 @@ function drawPowerUpBars() {
     const barH = 10;
 
     const timers = [
-        { label: 'STRIKE OVERLOAD', val: player.powerUps.rapidFire, max: 8.0, color: COLORS.accent },
-        { label: 'OVERDRIVE SPEED', val: player.powerUps.speedBoost, max: 8.0, color: COLORS.primary },
-        { label: 'NEGATION FIELD', val: player.powerUps.shield, max: 10.0, color: COLORS.white }
+        { label: 'STRIKE OVERLOAD', val: player.powerUps.rapidFire, max: window.getUpgradeMaxDuration ? window.getUpgradeMaxDuration('rapidFire') : 4.0, color: COLORS.accent },
+        { label: 'OVERDRIVE SPEED', val: player.powerUps.speedBoost, max: window.getUpgradeMaxDuration ? window.getUpgradeMaxDuration('speedBoost') : 4.0, color: COLORS.primary },
+        { label: 'NEGATION FIELD', val: player.powerUps.shield, max: window.getUpgradeMaxDuration ? window.getUpgradeMaxDuration('shield') : 5.0, color: COLORS.white }
     ];
 
     timers.forEach(t => {
@@ -3204,6 +3643,11 @@ if (lbCloseBtn) lbCloseBtn.onclick = closeLeaderboard;
 leaderboardOverlay.onclick = (e) => {
     if (e.target === leaderboardOverlay) closeLeaderboard();
 };
+if (achOverlay) {
+    achOverlay.onclick = (e) => {
+        if (e.target === achOverlay) achOverlay.classList.add('hidden');
+    };
+}
 
 // Initial High Score Display
 if (usernameInput) usernameInput.value = playerName;
@@ -3221,6 +3665,12 @@ initLeaderboard();
 
 // Initiate Primary Application Thread
 requestAnimationFrame(tick);
+
+// Initialize System
+window.onload = () => {
+    if (window.initAchievements) window.initAchievements();
+    if (window.initShop) window.initShop();
+};
 
 /**
  * ============================================================================
