@@ -745,20 +745,31 @@ button.joy-btn:active:not(.move-joy) {
 .go-btn-group {
     display: flex;
     flex-direction: column;
-    gap: clamp(8px, 1.5vh, 14px);
+    gap: clamp(8px, 1.5vh, 12px);
     align-items: center;
-    margin-top: clamp(12px, 3vh, 35px);
+    margin-top: clamp(12px, 3vh, 30px);
     width: 100%;
 }
 
-/* ========================================
-   LEADERBOARD OVERLAY
-   ======================================== */
+.go-btn-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    width: 100%;
+    margin-top: 15px;
+}
+
 .btn-lb {
     border-color: var(--primary) !important;
     color: var(--primary) !important;
-    font-size: 12px !important;
-    letter-spacing: 3px !important;
+    font-size: 11px !important;
+    letter-spacing: 2px !important;
+    width: calc(45% - 10px) !important;
+    min-width: 130px !important;
+    height: 42px !important;
+    line-height: 42px !important;
 }
 
 .btn-lb:hover {
@@ -1677,3 +1688,349 @@ button.joy-btn:active:not(.move-joy) {
         opacity: 1;
     }
 }
+
+/* ========================================
+   TRAIL SHOP & SPIN SYSTEM
+   ======================================== */
+
+.shop-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+.shop-tab-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shop-tab-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(0, 229, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.spin-area {
+    background: rgba(255, 235, 59, 0.05);
+    border: 1px dashed #ffeb3b;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.spin-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.spin-cost-label {
+    font-size: 10px;
+    color: #ffeb3b;
+    letter-spacing: 2px;
+    font-weight: 900;
+}
+
+.spin-price {
+    font-size: 24px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 235, 59, 0.4);
+}
+
+.trail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.trail-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 229, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+}
+
+.trail-card:hover:not(.locked) {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.trail-card.equipped {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.trail-card.locked {
+    opacity: 0.4;
+    filter: grayscale(1);
+    cursor: default;
+}
+
+.trail-rarity-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+.trail-rarity-dot.common { background: #fff; }
+.trail-rarity-dot.uncommon { background: #00e5ff; box-shadow: 0 0 5px #00e5ff; }
+.trail-rarity-dot.epic { background: #a335ee; box-shadow: 0 0 8px #a335ee; }
+.trail-rarity-dot.legendary { background: #ffeb3b; box-shadow: 0 0 10px #ffeb3b; }
+.trail-rarity-dot.mythic { background: #ff0000; box-shadow: 0 0 12px #ff0000; }
+
+.trail-card-name {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-align: center;
+    color: #aaa;
+}
+
+.trail-card.equipped .trail-card-name {
+    color: #fff;
+}
+
+.trail-status {
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: #fff;
+    margin-top: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.trail-card.equipped .trail-status {
+    color: #fff;
+    background: var(--primary);
+}
+
+/* Spin Result Overlay */
+.spin-result-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 4000;
+    backdrop-filter: blur(10px);
+}
+
+/* Crate Opening Animation */
+.crate-opening-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 4500;
+    backdrop-filter: blur(15px);
+}
+
+.crate-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.neural-crate {
+    width: 120px;
+    height: 120px;
+    background: #000;
+    border: 3px solid var(--rarity-color, var(--primary));
+    position: relative;
+    box-shadow: 0 0 30px var(--rarity-color, var(--primary));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.5s ease;
+}
+
+.neural-crate::before {
+    content: '◈';
+    font-size: 50px;
+    color: var(--rarity-color, var(--primary));
+    animation: crate-pulse 1s infinite;
+    text-shadow: 0 0 20px var(--rarity-color, var(--primary));
+}
+
+@keyframes crate-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+}
+
+.crate-shake {
+    animation: crate-shake-anim 0.2s infinite;
+}
+
+@keyframes crate-shake-anim {
+    0% { transform: translate(2px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(0px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(2px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(2px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.crate-burst {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.crate-light-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: top center;
+    width: 4px;
+    background: var(--primary);
+    box-shadow: 0 0 15px var(--primary);
+    opacity: 0;
+}
+
+.opening-text {
+    position: absolute;
+    bottom: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    animation: text-flicker 0.1s infinite;
+    text-shadow: 0 0 10px currentColor;
+}
+
+@keyframes text-flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* Result Card */
+.spin-result-card {
+    width: min(340px, 90vw);
+    background: rgba(10, 10, 10, 0.95);
+    border: 2px solid var(--primary);
+    padding: 40px 20px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0, 229, 255, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.8);
+    animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(20px);
+}
+
+@keyframes popIn {
+    from { transform: scale(0.7) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.spin-result-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+    z-index: -1;
+    animation: rotateGlow 10s linear infinite;
+    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    opacity: 0.2;
+}
+
+@keyframes rotateGlow {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.spin-label {
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: #888;
+    margin-bottom: 8px;
+    font-weight: 900;
+}
+
+.spin-rarity {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px currentColor;
+}
+
+.spin-name {
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.spin-preview {
+    margin-bottom: 30px;
+    padding: 2px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    width: 100%;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+

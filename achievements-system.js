@@ -110,6 +110,23 @@ const ACHIEVEMENTS = [
         icon: "💀",
         maxProgress: 25,
         reward: 10000
+    },
+    {
+        id: "city_phantom",
+        title: "CITY PHANTOM",
+        description: "Travel 500,000 meters into the sector.",
+        icon: "👻",
+        maxProgress: 500000,
+        reward: 10000
+    },
+    {
+        id: "void_walker",
+        title: "VOID WALKER",
+        description: "Travel 1,000,000 meters into the sector.",
+        icon: "🌌",
+        maxProgress: 1000000,
+        reward: 25000,
+        trailReward: "mythic_void"
     }
 ];
 
@@ -127,10 +144,21 @@ function initAchievements() {
         _achState = JSON.parse(savedAch);
     }
 
-    // Ensure all defined achievements exist in state
+    // Ensure all defined achievements exist in state and are consistent
     ACHIEVEMENTS.forEach(ach => {
         if (!_achState[ach.id]) {
             _achState[ach.id] = { progress: 0, state: 'LOCKED' };
+        } else {
+            // CRITICAL FIX: If an achievement requirement was increased, but the state is still COMPLETED/CLAIMED,
+            // we must reset the state so the player can actually finish the new requirement.
+            const stateData = _achState[ach.id];
+            if (stateData.progress < ach.maxProgress) {
+                if (stateData.state === 'COMPLETED' || stateData.state === 'CLAIMED') {
+                    stateData.state = stateData.progress > 0 ? 'IN_PROGRESS' : 'LOCKED';
+                }
+            } else if (stateData.progress >= ach.maxProgress && stateData.state === 'IN_PROGRESS') {
+                stateData.state = 'COMPLETED';
+            }
         }
     });
 
@@ -171,7 +199,9 @@ function updateAchievementProgress(id, amount, absolute = false) {
     const state = _achState[id];
 
     if (!ach || !state) return;
-    if (state.state === 'COMPLETED' || state.state === 'CLAIMED') return;
+    
+    // If requirement increased, we allow updates again even if it was previously "COMPLETED"
+    if (state.progress >= ach.maxProgress && (state.state === 'COMPLETED' || state.state === 'CLAIMED')) return;
 
     if (absolute) {
         state.progress = Math.max(state.progress, amount);
@@ -212,6 +242,13 @@ function claimAchievementReward(id) {
     if (ach && state && state.state === 'COMPLETED') {
         state.state = 'CLAIMED';
         _neuralCredits += ach.reward;
+        
+        // Handle Trail Reward
+        if (ach.trailReward && window.unlockTrail) {
+            window.unlockTrail(ach.trailReward);
+            triggerCombatAlert("LEGENDARY TRAIL UNLOCKED!", "#ff00ff", "✨");
+        }
+
         saveCurrency();
         saveAchievements();
         showRewardAnimation(ach.reward);
@@ -230,7 +267,7 @@ function showAchievementNotification(ach) {
         <div class="ach-header">ACHIEVEMENT COMPLETED</div>
         <div class="ach-title">${ach.icon} ${ach.title}</div>
         <div class="ach-desc">${ach.description}</div>
-        <div class="ach-reward-info">REWARD UNLOCKED: ${ach.reward} CR</div>
+        <div class="ach-reward-info">REWARD UNLOCKED: ${ach.reward} CR${ach.trailReward ? ' + [VOID NEBULA TRAIL]' : ''}</div>
     `;
 
     container.appendChild(notification);
@@ -353,6 +390,8 @@ function checkAchievementConditions(eventType, data = {}) {
         case 'DISTANCE_UPDATE':
             updateAchievementProgress('survivor_protocol', data.distance, true);
             updateAchievementProgress('city_ghost', data.distance, true);
+            updateAchievementProgress('city_phantom', data.distance, true);
+            updateAchievementProgress('void_walker', data.distance, true);
             break;
 
         case 'SCORE_UPDATE':
@@ -375,7 +414,7 @@ function renderAchievementPanel() {
 
     listEl.innerHTML = '';
 
-    // Sort logic to bring claimable and in-progress to top, claimed to bottom
+    // Prioritize achievements that are actually achievable or claimable
     const sortedAchs = [...ACHIEVEMENTS].sort((a, b) => {
         const stateA = _achState[a.id].state;
         const stateB = _achState[b.id].state;
@@ -388,7 +427,12 @@ function renderAchievementPanel() {
             return 0;
         };
 
-        return rank(stateB) - rank(stateA);
+        if (rank(stateB) !== rank(stateA)) return rank(stateB) - rank(stateA);
+        
+        // Secondary sort: Progress percentage
+        const progA = (_achState[a.id].progress / a.maxProgress);
+        const progB = (_achState[b.id].progress / b.maxProgress);
+        return progB - progA;
     });
 
     sortedAchs.forEach(ach => {
@@ -404,7 +448,13 @@ function renderAchievementPanel() {
         } else if (stateData.state === 'CLAIMED') {
             actionBtnHTML = `<button class="ach-action-btn claimed-btn" disabled>CLAIMED</button>`;
         } else {
-            actionBtnHTML = `<div class="ach-reward-amount">${ach.reward} CR</div>`;
+            const trailText = ach.trailReward ? `<div class="ach-reward-trail" style="color: #ff00ff; font-size: 9px; margin-bottom: 4px;">+ VOID NEBULA TRAIL</div>` : '';
+            actionBtnHTML = `
+                <div class="ach-action-area-inner">
+                    ${trailText}
+                    <div class="ach-reward-amount">${ach.reward} CR</div>
+                </div>
+            `;
         }
 
         item.innerHTML = `

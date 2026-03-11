@@ -15,7 +15,7 @@ let shopData = {
         shield: { name: "NEGATION FIELD", desc: "Increases shield duration.", level: 1, maxLevel: 5, basePrice: 300, priceMult: 1.6, baseDuration: 5.0, durChange: 1.25, icon: "🛡" }
     },
     consumables: {
-        headStart: { name: "ADVANCED DEPLOY", desc: "Start run at 5000m instantly.", owned: 0, price: 500, icon: "🚀" },
+        headStart: { name: "ADVANCED DEPLOY", desc: "Start run at 500m instantly.", owned: 0, price: 500, icon: "🚀" },
         aegisArmor: { name: "AEGIS PLATING", desc: "Start next run with a free hit shield.", owned: 0, price: 300, icon: "🛡" }
     }
 };
@@ -186,6 +186,35 @@ function renderShopPanel() {
     }
 }
 
+// --- Tab Switching Logic ---
+function switchShopTab(tab) {
+    const shopList = document.getElementById('shop-list');
+    const trailList = document.getElementById('trail-list');
+    const tabUpg = document.getElementById('tab-upgrades');
+    const tabTrail = document.getElementById('tab-trails');
+
+    if (tab === 'upgrades') {
+        shopList.classList.remove('hidden');
+        trailList.classList.add('hidden');
+        tabUpg.classList.add('active');
+        tabTrail.classList.remove('active');
+        renderShopPanel();
+    } else {
+        shopList.classList.add('hidden');
+        trailList.classList.remove('hidden');
+        tabUpg.classList.remove('active');
+        tabTrail.classList.add('active');
+        if (window.renderTrailShop) window.renderTrailShop();
+    }
+}
+
+// Update initialization to include trails
+const originalInitShop = initShop;
+initShop = function () {
+    originalInitShop();
+    if (window.initTrails) window.initTrails();
+};
+
 // Expose APIs
 window.initShop = initShop;
 window.renderShopPanel = renderShopPanel;
@@ -195,3 +224,4 @@ window.getUpgradeDuration = getUpgradeDuration;
 window.getUpgradeMaxDuration = getUpgradeMaxDuration;
 window.consumeItem = consumeItem;
 window.getOwnedConsumables = getOwnedConsumables;
+window.switchShopTab = switchShopTab;

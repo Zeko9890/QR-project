@@ -137,11 +137,10 @@
                 <div class="key-hint"><span class="key">SHIFT</span> Dash</div>
                 <div class="key-hint"><span class="key">P</span> Pause</div>
             </div>
-            <div class="go-btn-group" style="display: flex; gap: 10px; justify-content: center;">
+            <div class="go-btn-row">
                 <button id="start-lb-btn" class="btn-sync btn-lb">🏆 LEADERBOARD</button>
                 <button id="start-ach-btn" class="btn-sync btn-lb">🏅 ACHIEVEMENTS</button>
-                <button id="start-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒
-                    BLACK MARKET</button>
+                <button id="start-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒 MARKET</button>
             </div>
         </div>
 
@@ -153,11 +152,13 @@
             <div class="go-stat go-pilot">NEURAL ID: <span id="over-pilot-name">GUEST_PILOT</span></div>
             <div class="go-stat go-status">UNIT STATUS: <span id="unit-status">COMPROMISED</span></div>
             <div class="go-btn-group">
-                <button id="restart-btn" class="btn-sync">REBOOT SYSTEM</button>
-                <button id="home-btn" class="btn-sync">BASE COMMAND</button>
-                <button id="over-lb-btn" class="btn-sync btn-lb">🏆 LEADERBOARD</button>
-                <button id="over-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒
-                    BLACK MARKET</button>
+                <button id="restart-btn" class="btn-sync" style="background: var(--primary); color: #000; border: none;">REBOOT LINK</button>
+                <button id="home-btn" class="btn-sync">BASE RETURN</button>
+
+                <div class="go-btn-row">
+                    <button id="over-lb-btn" class="btn-sync btn-lb">🏆 RECORDS</button>
+                    <button id="over-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒 MARKET</button>
+                </div>
             </div>
         </div>
 
@@ -195,11 +196,20 @@
             <div class="lb-overlay-box">
                 <div class="lb-overlay-header">
                     <div class="lb-title" style="color: #ffeb3b; text-shadow: 0 0 15px rgba(255, 235, 59, 0.4);">🛒
-                        BLACK MARKET (UPGRADES)</div>
+                        BLACK MARKET</div>
                     <button id="shop-close-btn" class="lb-close">✕</button>
                 </div>
+                
+                <div class="shop-tabs">
+                    <button id="tab-upgrades" class="shop-tab-btn active" onclick="switchShopTab('upgrades')">SYSTEM UPGRADES</button>
+                    <button id="tab-trails" class="shop-tab-btn" onclick="switchShopTab('trails')">NEURAL TRAILS</button>
+                </div>
+
                 <div id="shop-list" class="ach-list" style="display: flex; flex-direction: column; gap: 15px;">
                     <!-- Shop Items will be injected here -->
+                </div>
+                <div id="trail-list" class="ach-list hidden" style="display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Trail Items will be injected here -->
                 </div>
             </div>
         </div>
@@ -232,6 +242,7 @@
     <script type="module" src="firebase-leaderboard.js"></script>
     <script src="achievements-system.js"></script>
     <script src="shop-system.js"></script>
+    <script src="trail-system.js"></script>
     <script src="game.js"></script>
     <script src="bg3d.js"></script>
 </body>

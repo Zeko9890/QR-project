@@ -84,6 +84,11 @@ const COLORS = {
 
 // --- 3. SYSTEM STATE ---
 let gameState = 'START';
+let isSurvivalMode = true;
+let isTeleporting = false;
+let teleportTimer = 0;
+let teleportTargetX = 0;
+let teleportStartDist = 0;
 let score = 0;
 let killScore = 0;
 let comboCount = 0;
@@ -249,13 +254,15 @@ if (achCloseBtn) {
 }
 if (startShopBtn) {
     startShopBtn.addEventListener('click', () => {
-        if (window.renderShopPanel) window.renderShopPanel();
+        if (window.switchShopTab) window.switchShopTab('upgrades'); // Default to upgrades tab
+        else if (window.renderShopPanel) window.renderShopPanel();
         shopOverlay.classList.remove('hidden');
     });
 }
 if (overShopBtn) {
     overShopBtn.addEventListener('click', () => {
-        if (window.renderShopPanel) window.renderShopPanel();
+        if (window.switchShopTab) window.switchShopTab('upgrades'); // Default to upgrades tab
+        else if (window.renderShopPanel) window.renderShopPanel();
         shopOverlay.classList.remove('hidden');
     });
 }
@@ -279,6 +286,12 @@ window.addEventListener('keydown', (e) => {
         const types = ['PLASMA', 'HEAVY', 'SPREAD', 'RAPID_FIRE', 'SPEED', 'SHIELD'];
         const chosen = types[Math.floor(Math.random() * types.length)];
         pickups.push({ posX: player.x + 100, posY: player.y - 100, model: chosen, isFound: false });
+    }
+    if (e.code === 'KeyM') {
+        if (window.addNeuralCredits) {
+            window.addNeuralCredits(10000);
+            triggerCombatAlert("DEBUG: +10,000 CREDITS RECEIVED", "#ffeb3b", "💠");
+        }
     }
 
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
@@ -942,18 +955,23 @@ class PlayerTitan {
         this.rotation = lerp(this.rotation, targetRot, 0.12);
 
         // Dynamic Trail Logic
-        if (this.isDashActive || isNeuralOverdrive || Math.abs(this.vx) > 600 || Math.abs(this.vy) > 800) {
+        const equippedTrail = window.getEquippedTrail ? window.getEquippedTrail() : null;
+        
+        // Record trail point
+        // Always record if a trail is equipped, otherwise only on special actions
+        if (equippedTrail || this.isDashActive || isNeuralOverdrive || Math.abs(this.vx) > 600 || Math.abs(this.vy) > 800) {
             this.trail.push({
                 x: this.x,
                 y: this.y,
                 life: isNeuralOverdrive ? 1.5 : 1.0,
-                isNeural: isNeuralOverdrive
+                isNeural: isNeuralOverdrive,
+                style: equippedTrail
             });
             // Protect against infinite trail growth
-            if (this.trail.length > 40) this.trail.shift();
+            if (this.trail.length > 50) this.trail.shift();
         }
         for (let j = this.trail.length - 1; j >= 0; j--) {
-            this.trail[j].life -= dt * 3;
+            this.trail[j].life -= dt * 2.5;
             if (this.trail[j].life <= 0) this.trail.splice(j, 1);
         }
 
@@ -1218,12 +1236,106 @@ class PlayerTitan {
         // Draw Trail (Advanced Poly-Trails)
         this.trail.forEach((t, i) => {
             ctx.save();
-            ctx.globalAlpha = t.life * (t.isNeural ? 0.6 : 0.3);
-            ctx.fillStyle = t.isNeural ? '#fff' : COLORS.primary;
-            const sizeMod = 0.5 + (i / this.trail.length) * 0.5;
+            const lifeAlpha = t.life * (t.isNeural ? 0.7 : 0.4);
+            ctx.globalAlpha = lifeAlpha;
+            
+            let trailColor = t.isNeural ? '#fff' : COLORS.primary;
+            let useGlow = false;
+            let isSpecial = false;
+            let trailType = t.style ? t.style.type : 'solid';
+
+            if (t.style) {
+                if (t.style.type === 'solid' || t.style.type === 'glow') {
+                    trailColor = t.style.color;
+                    if (t.style.type === 'glow') useGlow = true;
+                } else if (t.style.type === 'gradient') {
+                    // Optimized color approximations
+                    if (t.style.id === 'gradient_fire') {
+                        trailColor = `rgb(255, ${Math.floor(255 * (1 - t.life))}, 0)`;
+                    } else if (t.style.id === 'gradient_ice') {
+                        trailColor = `rgb(0, ${Math.floor(255 * (1 - t.life))}, 255)`;
+                    } else if (t.style.id === 'gradient_void') {
+                        trailColor = `rgb(${142 - t.life * 50}, ${45 + t.life * 20}, ${226})`;
+                    } else if (t.style.id === 'mythic_void') {
+                        // Mythic Void Nebula Pulse
+                        trailColor = `hsl(${(Date.now() / 15 + i * 5) % 60 + 260}, 100%, ${50 + Math.sin(Date.now() * 0.005 + i) * 20}%)`;
+                        useGlow = true;
+                    } else {
+                        trailColor = t.style.color || COLORS.primary;
+                    }
+                } else if (t.style.type === 'special') {
+                    if (t.style.id === 'legend_rainbow') {
+                        trailColor = `hsl(${(Date.now() / 10 + i * 15) % 360}, 100%, 50%)`;
+                        useGlow = true;
+                    }
+                } else if (t.style.type === 'matrix') {
+                    trailColor = Math.random() > 0.8 ? '#fff' : '#00ff41';
+                    useGlow = true;
+                } else if (t.style.type === 'box') {
+                    trailColor = t.style.color || '#ff00ff';
+                    useGlow = true;
+                } else if (t.style.type === 'glitch') {
+                    trailColor = Math.random() > 0.7 ? '#fff' : (Math.random() > 0.5 ? '#ff0055' : '#00e5ff');
+                    useGlow = true;
+                }
+            }
+
+            if (useGlow && !isMobile) {
+                ctx.shadowBlur = t.style?.rarity === 'MYTHIC' ? 25 : (t.isNeural ? 20 : 10);
+                ctx.shadowColor = trailColor;
+            }
+
+            ctx.fillStyle = trailColor;
+            const sizeMod = (0.3 + (i / this.trail.length) * 0.7) * (t.style?.type === 'box' ? 1.4 : 1.0);
             ctx.translate(t.x - camera.x + this.w / 2, t.y - camera.y + this.h / 2);
             ctx.rotate(this.rotation);
-            ctx.fillRect(-this.w / 2 * sizeMod, -this.h / 2 * sizeMod, this.w * sizeMod, this.h * sizeMod);
+            
+            const trailW = (t.style?.type === 'box' ? 16 : this.w) * sizeMod;
+            const trailH = (t.style?.type === 'box' ? 16 : this.h) * sizeMod;
+
+            if (t.style?.type === 'box') {
+                // Draw square particles for Mythic Box trail
+                ctx.fillRect(-trailW / 2, -trailH / 2, trailW, trailH);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-trailW / 2, -trailH / 2, trailW, trailH);
+                
+                // Static internal dot
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(-2, -2, 4, 4);
+            } else if (t.style?.type === 'glitch') {
+                // Skewed glitchy bars
+                const offset = Math.sin(Date.now() * 0.05 + i) * 15;
+                if (Math.random() > 0.2) {
+                    ctx.fillRect(-trailW / 2 + offset, -trailH / 2, trailW, trailH / 4);
+                    ctx.fillRect(-trailW / 2 - offset, trailH / 4, trailW, trailH / 4);
+                }
+                if (Math.random() > 0.8) {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(random(-20, 20), random(-20, 20), 10, 2);
+                }
+            } else if (t.style?.id === 'mythic_void') {
+                // Draw Nebula "Core"
+                ctx.beginPath();
+                ctx.arc(0, 0, trailW / 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add star particles
+                if (Math.random() > 0.7) {
+                    ctx.fillStyle = '#fff';
+                    const s = Math.random() * 3;
+                    ctx.fillRect(random(-trailW, trailW), random(-trailH, trailH), s, s);
+                }
+            } else {
+                ctx.fillRect(-trailW / 2, -trailH / 2, trailW, trailH);
+            }
+            
+            // Add matrix "code" particles
+            if (t.style && t.style.type === 'matrix' && Math.random() > 0.9) {
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(random(-trailW, trailW), random(-trailH, trailH), 2, 4);
+            }
+
             ctx.restore();
         });
 
@@ -1529,7 +1641,7 @@ class TitanBoss {
         this.phaseTimer = 0;
         this.arrivalMode = true;
         this.attackPhase = 0;
-        this.maxPhases = 6; // All bosses use all phases now for better variety
+        this.maxPhases = 6;
         this.cycleTime = 0;
         this.shotCounter = 0;
         this.flashTimer = 0;
@@ -1603,16 +1715,14 @@ class TitanBoss {
             }
         } else if (this.attackPhase === 5) {
             // ELITE DRONE DEPLOYMENT
-            if (this.shotCounter > 1.8) {
-                const spawnX = this.x + random(-150, 150);
-                const spawnY = this.y + random(100, 200);
+            if (this.shotCounter > 1.2) {
+                const spawnX = titan.x + canvas.width * INV_SCALE + 200; // Spawn just off-screen ahead
+                const spawnY = titan.y - 150 + random(-100, 100);
                 const elite = new HostileUnit(spawnX, spawnY, 'DRONE');
-                elite.integrity *= 1.5; // Boss minions are tougher
+                elite.integrity = 200; // Stronger minions
                 enemies.push(elite);
                 triggerTransition("TITAN SQUADRON DEPLOYED", COLORS.boss);
                 this.shotCounter = 0;
-
-                // Extra blast for feedback
                 AudioFX.explosion();
                 emitParticles(spawnX, spawnY, 'NORMAL', COLORS.boss, 15, 200);
             }
@@ -2251,13 +2361,18 @@ function rebootSystem() {
     score = 0; killScore = 0;
     syncFill.style.width = '0%';
     uiLayer.classList.remove('overdrive-active', 'neural-overdrive');
+    weatherSystems = [];
+    
+    // Core Distances Reset
+    distanceTraveled = 0;
     lastBossCheckpoint = 0;
     lastDistanceCheckpoint = 0;
     lastCheckpointSpawnX = 0;
+    lastCheckpointKillScore = 0;
     currentZone = 1;
-    backgroundObjects = [];
-    urbanParallax = [];
-    weatherSystems = [];
+
+    // Movement Reset
+    camera.x = 0; camera.y = 0;
 
     // Clear stuck input (critical for mobile restart)
     clearAllInputs();
@@ -2289,6 +2404,44 @@ function rebootSystem() {
 
     // Achievement: Game Start
     if (window.checkAchievementConditions) window.checkAchievementConditions('GAME_START');
+}
+
+function finalizeTeleport() {
+    isTeleporting = false;
+    player.isCompromised = false;
+    
+    // Clear old world to prevent overlaps and "void" glitches
+    platforms = [];
+    enemies = [];
+    coins = [];
+    pickups = [];
+    destructibles = [];
+    backgroundObjects = [];
+    checkpoints = [];
+    floatingTexts = [];
+    particles = [];
+    
+    // Set destination
+    player.x = teleportTargetX;
+    player.y = 100; // Drop into new sector
+    player.vy = 0;
+    camera.x = player.x - canvas.width * 0.35 * INV_SCALE;
+    distanceTraveled = teleportTargetX;
+    currentZone = 2;
+    nextPlatformX = teleportTargetX;
+    lastCheckpointSpawnX = teleportTargetX;
+    
+    // Build initial safety platform
+    platforms.push(new SolidSurface(teleportTargetX - 400, 500, 2000, 90, currentZone));
+    
+    // Blast effect on arrival
+    triggerCombatAlert("DE-SYNCHING: SECTOR 2 REACHED", COLORS.accent, "⚡");
+    screenShake = 60;
+    screenFlash = 1.0;
+    if (window.AudioFX && window.AudioFX.shatter) window.AudioFX.shatter();
+    
+    // Force build some initial world
+    buildWorldSectors(player.x + 4000);
 }
 
 function initStartupPhase() {
@@ -2329,13 +2482,17 @@ function useStartupPowerup(key) {
             player.hasArmorShield = true;
             triggerCombatAlert("AEGIS PLATING DEPLOYED", COLORS.primary, "🛡");
         } else if (key === 'headStart') {
-            player.x = 5000;
-            camera.x = player.x - canvas.width * 0.35 * INV_SCALE;
-            distanceTraveled = 5000;
-            currentZone = 2;
-            nextPlatformX = 5000;
-            platforms.push(new SolidSurface(5000 - 500, 500, 1800, 90, currentZone));
-            triggerCombatAlert("HYPERSPACE INITIATED: 5000m", COLORS.primary, "🚀");
+            isTeleporting = true;
+            teleportTimer = 1.2;
+            teleportTargetX = 5000;
+            teleportStartDist = distanceTraveled;
+            
+            // Lock player and systems during warp
+            player.vx = 0; player.vy = 0;
+            player.isCompromised = true;
+            
+            triggerCombatAlert("HYPERSPACE DEPLOYMENT INITIATED", COLORS.primary, "🚀");
+            if (window.AudioFX && window.AudioFX.loadingDrive) window.AudioFX.loadingDrive();
         }
 
         // Refresh UI
@@ -2600,7 +2757,34 @@ function tick(timestamp) {
             const timerEl = document.getElementById('startup-timer');
             if (timerEl) timerEl.innerText = Math.ceil(startupTimer);
 
-            if (startupTimer <= 0) {
+            if (startupTimer <= 0 && !isTeleporting) {
+                isStartupPhase = false;
+                document.getElementById('startup-container').classList.add('hidden');
+            }
+        }
+
+        // Hyperspace Teleport Animation Logic
+        if (isTeleporting) {
+            teleportTimer -= delta;
+            
+            // Background running backwards = Camera moving fast forward
+            const warpSpeed = 15000; // Fast motion feel
+            camera.x += warpSpeed * delta;
+            
+            // Add warp streaks
+            if (Math.random() > 0.2) {
+                particles.push(new ParticleSystem(
+                    camera.x + canvas.width * INV_SCALE + 100,
+                    random(0, canvas.height * INV_SCALE),
+                    COLORS.primary, random(1, 3), -6000, 0, 0.4, 'LINE'
+                ));
+            }
+            
+            // Glitch screen as we warp
+            player.glitchIntensity = Math.max(player.glitchIntensity, (1.2 - teleportTimer) * 0.8);
+
+            if (teleportTimer <= 0) {
+                finalizeTeleport();
                 isStartupPhase = false;
                 document.getElementById('startup-container').classList.add('hidden');
             }
@@ -3051,7 +3235,7 @@ function processScoring(delta) {
     }
 
     // High-precision score calculation
-    const distScore = Math.floor(distanceTraveled / 10);
+    const distScore = Math.max(0, Math.floor((distanceTraveled - 250) / 10)); // Offset by spawn pos
     score = distScore + killScore;
     scoreEl.innerText = score.toString().padStart(6, '0');
     if (distanceEl) distanceEl.innerText = `${distScore}m`;
