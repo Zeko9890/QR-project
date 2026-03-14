@@ -348,7 +348,7 @@ if (isMobile && screen.orientation && screen.orientation.lock) {
 const MAX_PARTICLES = isMobile ? 80 : 250;
 const MAX_BULLETS = isMobile ? 30 : 60;
 const SCANLINES_ENABLED = !isMobile;
-if (isTouchDevice) {
+if (isMobile) {
     mobileControls.classList.remove('hidden');
 
     // Prevent default touch behaviors like scrolling, zooming, or pull-to-refresh
@@ -2021,7 +2021,7 @@ class SolidSurface {
         const dx = this.x - camera.x;
         const dy = this.y - camera.y;
         // Skip if off screen
-        if (dx + this.w < 0 || dx > canvas.width || dy + this.h < 0 || dy > canvas.height) return;
+        if (dx + this.w < 0 || dx > canvas.width * INV_SCALE || dy + this.h < 0 || dy > canvas.height * INV_SCALE) return;
 
         ctx.fillStyle = this.color;
         ctx.fillRect(dx, dy, this.w, this.h);
@@ -2510,7 +2510,7 @@ function rebootSystem() {
     // Init Weather
     weatherSystems = [];
 
-    if (isTouchDevice) mobileControls.classList.remove('hidden');
+    if (isMobile) mobileControls.classList.remove('hidden');
     currentRankIndex = 0;
     backgroundTexts = [];
 
@@ -2696,7 +2696,7 @@ function rebootFromCheckpoint() {
 
     buildWorldSectors(lastDistanceCheckpoint + 6000, true);
 
-    if (isTouchDevice) mobileControls.classList.remove('hidden');
+    if (isMobile) mobileControls.classList.remove('hidden');
 
     // Restore rank based on score
     currentRankIndex = 0;
@@ -2792,7 +2792,7 @@ function initiateSystemHalt(reason = 'ENEMY') {
     // Clear all stuck inputs
     clearAllInputs();
     document.body.classList.remove('danger');
-    if (isTouchDevice && mobileControls) mobileControls.classList.add('hidden');
+    if (isMobile && mobileControls) mobileControls.classList.add('hidden');
 }
 
 function finalizeDeathSequence() {
