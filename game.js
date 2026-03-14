@@ -596,6 +596,12 @@ const AudioFX = {
         setTimeout(() => playDynamicSound(1200, 'sawtooth', 0.1, 0.05, -800), 30);
         setTimeout(() => playDynamicSound(2500, 'square', 0.05, 0.04, -1500), 60);
     },
+    uiClick: () => playDynamicSound(850, 'sine', 0.05, 0.1, 250),
+    crateOpen: () => {
+        playDynamicSound(300, 'sawtooth', 0.2, 0.1, 400);
+        setTimeout(() => playDynamicSound(800, 'square', 0.3, 0.1, 800), 100);
+        setTimeout(() => playDynamicSound(1600, 'sine', 0.5, 0.1, 1000), 250);
+    },
     loadingDrive: () => {
         // "trrrrrrrrrrrr" mechanical drive sound using rapid oscillators
         const now = audioCtx ? audioCtx.currentTime : 0;
@@ -606,6 +612,16 @@ const AudioFX = {
         }
     }
 };
+
+window.AudioFX = AudioFX;
+
+// --- GLOBAL UI CLICK SOUND HOOK ---
+document.addEventListener('mousedown', (e) => {
+    initAudioSystem(); // ensure audio is unlocked
+    if (e.target.closest('button') || e.target.closest('.btn-sync') || e.target.closest('.mode-card') || e.target.closest('.level-card') || e.target.closest('.shop-tab-btn')) {
+        AudioFX.uiClick();
+    }
+});
 
 // --- 6. UTILITY CLASSES & FUNCTIONS ---
 const random = (min, max) => Math.random() * (max - min) + min;
@@ -2523,7 +2539,14 @@ function finalizeTeleport() {
     player.vy = 0;
     camera.x = player.x - canvas.width * 0.35 * INV_SCALE;
     distanceTraveled = teleportTargetX;
-    currentZone = 2;
+    
+    if (window.isDungeonMode) {
+        // Dungeon remains in sector 1 environment to avoid sequence breaking
+        currentZone = 1;
+    } else {
+        currentZone = 2;
+    }
+    
     nextPlatformX = teleportTargetX;
     lastCheckpointSpawnX = teleportTargetX;
     
@@ -2540,7 +2563,10 @@ function finalizeTeleport() {
     buildWorldSectors(player.x + 4000);
 }
 
+let hasUsedStartup = false;
+
 function initStartupPhase() {
+    hasUsedStartup = false;
     const owned = window.getOwnedConsumables ? window.getOwnedConsumables() : [];
     if (owned.length === 0) {
         isStartupPhase = false;
@@ -2571,16 +2597,26 @@ function initStartupPhase() {
 }
 
 function useStartupPowerup(key) {
-    if (!isStartupPhase) return;
+    if (!isStartupPhase || hasUsedStartup) return;
 
     if (window.consumeItem && window.consumeItem(key)) {
+        hasUsedStartup = true; // Lock out further usage this round
+        
         if (key === 'aegisArmor') {
             player.hasArmorShield = true;
             triggerCombatAlert("AEGIS PLATING DEPLOYED", COLORS.primary, "🛡");
         } else if (key === 'headStart') {
             isTeleporting = true;
             teleportTimer = 1.2;
-            teleportTargetX = 5000;
+            
+            // Adjust teleport distance based on mode so it scales reasonably
+            if (window.isDungeonMode && window.activeDungeonLevel) {
+                 // Teleport 20% of the active dungeon length, up to a max of 7500
+                 teleportTargetX = Math.min(7500, window.activeDungeonLevel.distance * 0.2);
+            } else {
+                 teleportTargetX = 5000;
+            }
+            
             teleportStartDist = distanceTraveled;
             
             // Lock player and systems during warp
@@ -2590,6 +2626,11 @@ function useStartupPowerup(key) {
             triggerCombatAlert("HYPERSPACE DEPLOYMENT INITIATED", COLORS.primary, "🚀");
             if (window.AudioFX && window.AudioFX.loadingDrive) window.AudioFX.loadingDrive();
         }
+
+        // Hide UI immediately so they can't spam clicks
+        const container = document.getElementById('startup-container');
+        if (container) container.classList.add('hidden');
+        isStartupPhase = false;
 
         // Refresh UI
         const owned = window.getOwnedConsumables();

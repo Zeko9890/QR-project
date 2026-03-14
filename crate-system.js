@@ -235,6 +235,7 @@ function beginCrateSequence(reward, isDuplicate, rarityColor) {
     crate3d.classList.remove('crate-anim-idle');
     crate3d.classList.add('crate-anim-shake');
     if (window.AudioFX && window.AudioFX.loadingDrive) window.AudioFX.loadingDrive();
+    if (window.AudioFX && window.AudioFX.crateOpen) window.AudioFX.crateOpen();
     
     // Energy leaks start building up inside
     innerGlow.style.opacity = '0.5';

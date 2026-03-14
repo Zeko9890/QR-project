@@ -14,126 +14,126 @@ const DUNGEON_LEVELS = [
     // ─── TIER I: RECON (Levels 1-5) ───
     {
         id: 1, name: 'BREACH POINT', tier: 1,
-        distance: 8000, bossLevel: 0,
-        enemyDensity: 0.3, enemyTypes: ['DRONE'],
+        distance: 30000, bossLevel: 0,
+        enemyDensity: 0.35, enemyTypes: ['DRONE'],
         description: 'Basic infiltration. Clear the sector perimeter.',
-        starThresholds: [2000, 5000, 9000],
+        starThresholds: [6000, 15000, 28000],
         reward: 50
     },
     {
         id: 2, name: 'GRID SHADOW', tier: 1,
-        distance: 12000, bossLevel: 0,
-        enemyDensity: 0.45, enemyTypes: ['DRONE'],
+        distance: 40000, bossLevel: 0,
+        enemyDensity: 0.5, enemyTypes: ['DRONE'],
         description: 'Navigate through drone-patrolled corridors.',
-        starThresholds: [3000, 7000, 13000],
+        starThresholds: [9000, 22000, 40000],
         reward: 75
     },
     {
         id: 3, name: 'SIGNAL DECAY', tier: 1,
-        distance: 15000, bossLevel: 0,
-        enemyDensity: 0.5, enemyTypes: ['DRONE', 'SNIPER'],
+        distance: 50000, bossLevel: 0,
+        enemyDensity: 0.55, enemyTypes: ['DRONE', 'SNIPER'],
         description: 'Sniper units detected. Watch your flanks.',
-        starThresholds: [4000, 9000, 16000],
+        starThresholds: [12000, 28000, 50000],
         reward: 100
     },
     {
         id: 4, name: 'STATIC SURGE', tier: 1,
-        distance: 18000, bossLevel: 0,
-        enemyDensity: 0.55, enemyTypes: ['DRONE', 'SNIPER'],
+        distance: 60000, bossLevel: 0,
+        enemyDensity: 0.6, enemyTypes: ['DRONE', 'SNIPER'],
         description: 'High-interference zone. Enemy density rising.',
-        starThresholds: [5000, 12000, 20000],
+        starThresholds: [15000, 38000, 62000],
         reward: 125
     },
     {
         id: 5, name: 'WATCHDOG', tier: 1,
-        distance: 22000, bossLevel: 1,
-        enemyDensity: 0.5, enemyTypes: ['DRONE', 'SNIPER'],
+        distance: 75000, bossLevel: 1,
+        enemyDensity: 0.55, enemyTypes: ['DRONE', 'SNIPER'],
         description: 'First Titan encounter. Terminate the guardian.',
-        starThresholds: [8000, 18000, 30000],
+        starThresholds: [25000, 55000, 92000],
         reward: 200
     },
 
     // ─── TIER II: COMBAT (Levels 6-10) ───
     {
         id: 6, name: 'IRON VEIL', tier: 2,
-        distance: 25000, bossLevel: 1,
-        enemyDensity: 0.6, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
+        distance: 85000, bossLevel: 1,
+        enemyDensity: 0.65, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
         description: 'Tank units deployed. Heavy resistance ahead.',
-        starThresholds: [10000, 22000, 35000],
+        starThresholds: [31000, 68000, 108000],
         reward: 250
     },
     {
         id: 7, name: 'NERVE CENTER', tier: 2,
-        distance: 30000, bossLevel: 1,
-        enemyDensity: 0.65, enemyTypes: ['DRONE', 'TANK'],
+        distance: 100000, bossLevel: 1,
+        enemyDensity: 0.7, enemyTypes: ['DRONE', 'TANK'],
         description: 'Armored columns advance. Break through or perish.',
-        starThresholds: [12000, 26000, 42000],
+        starThresholds: [37000, 80000, 130000],
         reward: 300
     },
     {
         id: 8, name: 'BLACKOUT', tier: 2,
-        distance: 35000, bossLevel: 2,
-        enemyDensity: 0.7, enemyTypes: ['SNIPER', 'TANK'],
+        distance: 120000, bossLevel: 2,
+        enemyDensity: 0.75, enemyTypes: ['SNIPER', 'TANK'],
         description: 'Elite forces in a darkened sector. Stay vigilant.',
-        starThresholds: [15000, 30000, 48000],
+        starThresholds: [46000, 93000, 150000],
         reward: 350
     },
     {
         id: 9, name: 'CRUCIBLE', tier: 2,
-        distance: 40000, bossLevel: 2,
-        enemyDensity: 0.75, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
+        distance: 140000, bossLevel: 2,
+        enemyDensity: 0.8, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
         description: 'Full-spectrum warfare. Endure the crucible.',
-        starThresholds: [18000, 35000, 55000],
+        starThresholds: [55000, 108000, 170000],
         reward: 400
     },
     {
         id: 10, name: 'WARPATH', tier: 2,
-        distance: 45000, bossLevel: 3,
-        enemyDensity: 0.7, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
+        distance: 160000, bossLevel: 3,
+        enemyDensity: 0.75, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
         description: 'Titan-Class III detected. Maximum threat level.',
-        starThresholds: [22000, 42000, 65000],
+        starThresholds: [68000, 130000, 200000],
         reward: 500
     },
 
     // ─── TIER III: TITAN (Levels 11-15) ───
     {
         id: 11, name: 'RED PROTOCOL', tier: 3,
-        distance: 50000, bossLevel: 3,
-        enemyDensity: 0.8, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
+        distance: 180000, bossLevel: 3,
+        enemyDensity: 0.85, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
         description: 'Emergency protocols engaged. Overwhelming force.',
-        starThresholds: [25000, 48000, 72000],
+        starThresholds: [77000, 150000, 225000],
         reward: 600
     },
     {
         id: 12, name: 'DEAD SECTOR', tier: 3,
-        distance: 55000, bossLevel: 4,
-        enemyDensity: 0.85, enemyTypes: ['SNIPER', 'TANK'],
+        distance: 210000, bossLevel: 4,
+        enemyDensity: 0.9, enemyTypes: ['SNIPER', 'TANK'],
         description: 'No comms. No backup. Pure survival instinct.',
-        starThresholds: [28000, 52000, 80000],
+        starThresholds: [86000, 160000, 250000],
         reward: 700
     },
     {
         id: 13, name: 'NEURAL STORM', tier: 3,
-        distance: 60000, bossLevel: 4,
-        enemyDensity: 0.9, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
+        distance: 240000, bossLevel: 4,
+        enemyDensity: 0.95, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
         description: 'Reality fractured. Neural interference at maximum.',
-        starThresholds: [32000, 58000, 90000],
+        starThresholds: [99000, 180000, 280000],
         reward: 800
     },
     {
         id: 14, name: 'TITAN CORE', tier: 3,
-        distance: 65000, bossLevel: 5,
-        enemyDensity: 0.85, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
+        distance: 270000, bossLevel: 5,
+        enemyDensity: 0.9, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
         description: 'The heart of the Titan network. Penetrate and destroy.',
-        starThresholds: [35000, 62000, 100000],
+        starThresholds: [108000, 192000, 310000],
         reward: 1000
     },
     {
         id: 15, name: 'OVERDRIVE ZERO', tier: 3,
-        distance: 75000, bossLevel: 5,
+        distance: 320000, bossLevel: 5,
         enemyDensity: 1.0, enemyTypes: ['DRONE', 'SNIPER', 'TANK'],
         description: 'The final operation. Only legends survive.',
-        starThresholds: [40000, 70000, 120000],
+        starThresholds: [124000, 217000, 370000],
         reward: 1500
     }
 ];
@@ -376,7 +376,7 @@ function checkDungeonProgress() {
                 if (finalScoreEl) finalScoreEl.innerText = finalScore.toString().padStart(6, '0');
                 if (overHighScoreEl) overHighScoreEl.innerText = (typeof highScore !== 'undefined' ? highScore : 0).toString().padStart(6, '0');
                 if (pilotEl) pilotEl.innerText = typeof playerName !== 'undefined' ? playerName : 'PILOT';
-                if (unitEl) unitEl.innerText = `OPERATION SUCCESS // ${starText}`;
+                if (unitEl) unitEl.innerText = `OPERATION SUCCESS // CLEARED`;
 
                 const gameOverScreen = document.getElementById('game-over-screen');
                 if (gameOverScreen) {
@@ -389,6 +389,9 @@ function checkDungeonProgress() {
                         if (fadeIn >= 1) {
                             gameOverScreen.style.opacity = '1';
                             clearInterval(fadeInterval);
+                            
+                            // Trigger dynamic 3D star animation
+                            animateVictoryStars(result.stars);
                         }
                     }, 16);
                 }
@@ -407,6 +410,42 @@ function resetDungeonState() {
     isDungeonMode = false;
     dungeonBossSpawned = false;
     dungeonCompleted = false;
+    
+    // Clear victory stars UI for the next run
+    const starContainer = document.getElementById('dungeon-victory-stars');
+    if (starContainer) starContainer.classList.add('hidden');
+}
+
+/**
+ * Animate 3D Stars dynamically upon level clear
+ */
+function animateVictoryStars(starCount) {
+    const container = document.getElementById('dungeon-victory-stars');
+    if (!container) return;
+    
+    // Reset stars state
+    for (let i = 1; i <= 3; i++) {
+        const starEl = document.getElementById('vic-star-' + i);
+        if (starEl) {
+            starEl.className = 'vic-star'; // removes active anim class
+        }
+    }
+    
+    container.classList.remove('hidden');
+    
+    let currentStar = 1;
+    function popNext() {
+        if (currentStar > starCount) return;
+        const starEl = document.getElementById('vic-star-' + currentStar);
+        if (starEl) {
+            starEl.classList.add('star-active');
+            if (window.AudioFX && window.AudioFX.pickup) window.AudioFX.pickup();
+        }
+        currentStar++;
+        setTimeout(popNext, 500); // 500ms delay between stars popping up
+    }
+    
+    setTimeout(popNext, 600); // Delay start slightly after screen fade-in
 }
 
 // Expose to global scope (use defineProperty for live value access)
