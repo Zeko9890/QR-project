@@ -115,11 +115,11 @@
             </div>
         </div>
 
+        <!-- ═══════ TITLE SCREEN (Simplified) ═══════ -->
         <div id="start-screen" class="overlay">
             <div class="go-signal1">[ PROTOCOL ONLINE ]</div>
             <h1 class="go-title">CYBERSTRIKE<br>OVERDRIVE</h1>
             <div class="go-stat">LOCAL RECORD: <span id="start-high-score">000000</span></div>
-
 
             <div class="user-input-container">
                 <label for="username-input" class="stat-label">ENTER NEURAL ID</label>
@@ -127,20 +127,115 @@
                     spellcheck="false">
             </div>
 
-            <div class="go-btn-group" style="margin-bottom: 30px;">
-                <button id="start-btn" class="btn-sync">INITIATE PROTOCOL</button>
+            <div class="go-btn-group" style="margin-top: 25px; margin-bottom: 15px;">
+                <button id="nav-play-btn" class="btn-sync btn-play-main">▶ DEPLOY OPERATOR</button>
             </div>
-            <div class="instructions">
+
+            <div class="go-btn-row title-nav-row">
+                <button id="start-lb-btn" class="btn-sync btn-lb">🏆 LEADERBOARD</button>
+                <button id="start-ach-btn" class="btn-sync btn-lb">🏅 ACHIEVEMENTS</button>
+                <button id="start-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒 MARKET</button>
+            </div>
+        </div>
+
+        <!-- ═══════ MODE SELECT SCREEN ═══════ -->
+        <div id="mode-select-screen" class="overlay hidden">
+            <button id="mode-back-btn" class="nav-back-btn">← BACK</button>
+            <div class="go-signal1">[ SELECT OPERATION ]</div>
+            <h1 class="page-heading">MISSION TYPE</h1>
+            <div class="mode-cards-container">
+                <!-- Endless Card -->
+                <div id="card-endless" class="mode-card mode-card-endless">
+                    <div class="mode-card-icon">∞</div>
+                    <div class="mode-card-title">ENDLESS MODE</div>
+                    <div class="mode-card-subtitle">INFINITE SECTOR RUN</div>
+                    <div class="mode-card-desc">Push through infinite procedural sectors. How far can you survive? Classic checkpoints & Survival decay variants.</div>
+                    <div class="mode-card-tags">
+                        <span class="mc-tag">PROCEDURAL</span>
+                        <span class="mc-tag">LEADERBOARD</span>
+                    </div>
+                </div>
+                <!-- Dungeon Card -->
+                <div id="card-dungeons" class="mode-card mode-card-dungeons">
+                    <div class="mode-card-icon">⚔</div>
+                    <div class="mode-card-title">DUNGEON MODE</div>
+                    <div class="mode-card-subtitle">STRUCTURED OPERATIONS</div>
+                    <div class="mode-card-desc">Infiltrate 15 hand-coded sectors. Each dungeon has unique objectives, a boss encounter, and star ratings.</div>
+                    <div class="mode-card-tags">
+                        <span class="mc-tag">15 LEVELS</span>
+                        <span class="mc-tag">BOSS GAUNTLET</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ ENDLESS CONFIG SCREEN ═══════ -->
+        <div id="endless-config-screen" class="overlay hidden">
+            <button id="endless-back-btn" class="nav-back-btn">← BACK</button>
+            <div class="go-signal1">[ CONFIGURE PROTOCOL ]</div>
+            <h1 class="page-heading">ENDLESS RUN</h1>
+
+            <div class="endless-variant-cards">
+                <div id="variant-classic" class="variant-card variant-active">
+                    <div class="variant-icon">🛡</div>
+                    <div class="variant-name">CLASSIC</div>
+                    <div class="variant-desc">Standard Operation. Reaching checkpoints saves your distance.</div>
+                </div>
+                <div id="variant-survival" class="variant-card">
+                    <div class="variant-icon">💀</div>
+                    <div class="variant-name">SURVIVAL</div>
+                    <div class="variant-desc">Health constantly decays. Kill enemies to recover. No Checkpoints.</div>
+                </div>
+            </div>
+
+            <div class="instructions" style="margin-top: 20px;">
                 <div class="key-hint"><span class="key">WASD</span> Movement</div>
                 <div class="key-hint"><span class="key">SPACE</span> Jump</div>
                 <div class="key-hint"><span class="key">CLICK</span> Fire</div>
                 <div class="key-hint"><span class="key">SHIFT</span> Dash</div>
                 <div class="key-hint"><span class="key">P</span> Pause</div>
             </div>
-            <div class="go-btn-row">
-                <button id="start-lb-btn" class="btn-sync btn-lb">🏆 LEADERBOARD</button>
-                <button id="start-ach-btn" class="btn-sync btn-lb">🏅 ACHIEVEMENTS</button>
-                <button id="start-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒 MARKET</button>
+
+            <div class="go-btn-group" style="margin-top: 20px;">
+                <button id="start-btn" class="btn-sync btn-play-main">INITIATE PROTOCOL</button>
+            </div>
+        </div>
+
+        <!-- ═══════ LEVEL SELECT SCREEN ═══════ -->
+        <div id="level-select-screen" class="overlay hidden">
+            <button id="levels-back-btn" class="nav-back-btn">← BACK</button>
+            <div class="go-signal1">[ DUNGEON MANIFEST ]</div>
+            <h1 class="page-heading">SECTOR OPERATIONS</h1>
+
+            <div class="level-tiers-container">
+                <!-- Tier 1: RECON -->
+                <div class="level-tier">
+                    <div class="tier-header">
+                        <div class="tier-label tier-1">TIER I — RECON</div>
+                        <div class="tier-line"></div>
+                    </div>
+                    <div class="level-grid" id="tier1-grid">
+                        <!-- Levels injected by JS -->
+                    </div>
+                </div>
+                <!-- Tier 2: COMBAT -->
+                <div class="level-tier">
+                    <div class="tier-header">
+                        <div class="tier-label tier-2">TIER II — COMBAT</div>
+                        <div class="tier-line"></div>
+                    </div>
+                    <div class="level-grid" id="tier2-grid">
+                    </div>
+                </div>
+                <!-- Tier 3: TITAN -->
+                <div class="level-tier">
+                    <div class="tier-header">
+                        <div class="tier-label tier-3">TIER III — TITAN</div>
+                        <div class="tier-line"></div>
+                    </div>
+                    <div class="level-grid" id="tier3-grid">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -202,7 +297,8 @@
                 
                 <div class="shop-tabs">
                     <button id="tab-upgrades" class="shop-tab-btn active" onclick="switchShopTab('upgrades')">SYSTEM UPGRADES</button>
-                    <button id="tab-trails" class="shop-tab-btn" onclick="switchShopTab('trails')">NEURAL TRAILS</button>
+                    <button id="tab-trails" class="shop-tab-btn" onclick="switchShopTab('mytrails')">MY TRAILS</button>
+                    <button id="tab-crates" class="shop-tab-btn" onclick="switchShopTab('crates')" style="color: rgba(255, 235, 59, 0.4); border-color: rgba(255, 235, 59, 0.15);">NEURAL CACHE</button>
                 </div>
 
                 <div id="shop-list" class="ach-list" style="display: flex; flex-direction: column; gap: 15px;">
@@ -210,6 +306,9 @@
                 </div>
                 <div id="trail-list" class="ach-list hidden" style="display: flex; flex-direction: column; gap: 15px;">
                     <!-- Trail Items will be injected here -->
+                </div>
+                <div id="crate-list" class="ach-list hidden" style="display: flex; flex-direction: column; gap: 15px;">
+                    <!-- Crate Items will be injected here -->
                 </div>
             </div>
         </div>
@@ -243,6 +342,8 @@
     <script src="achievements-system.js"></script>
     <script src="shop-system.js"></script>
     <script src="trail-system.js"></script>
+    <script src="crate-system.js"></script>
+    <script src="dungeon-system.js"></script>
     <script src="game.js"></script>
     <script src="bg3d.js"></script>
 </body>

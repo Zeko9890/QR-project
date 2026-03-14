@@ -1023,6 +1023,526 @@ button.joy-btn:active:not(.move-joy) {
     color: rgba(255, 255, 255, 0.3);
 }
 
+/* ── Mode Selector ── */
+.mode-selector {
+    display: flex;
+    gap: 15px;
+    margin: 25px 0 10px 0;
+    pointer-events: auto;
+}
+
+.mode-btn {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: #888;
+    padding: 10px 25px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.mode-btn:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.mode-btn.active {
+    background: rgba(0, 229, 255, 0.15);
+    border-color: #00e5ff;
+    color: #00e5ff;
+    text-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+    box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.2);
+}
+
+/* Thematic Survival Switch */
+.mode-btn.mode-survival-theme.active {
+    background: rgba(255, 0, 85, 0.15);
+    border-color: #ff0055;
+    color: #ff0055;
+    text-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+    box-shadow: inset 0 0 20px rgba(255, 0, 85, 0.2);
+}
+
+.mode-desc {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+    max-width: 300px;
+    text-align: center;
+    line-height: 1.4;
+    min-height: 35px;
+}
+
+/* ========================================
+   MAIN PLAY BUTTON (Premium)
+   ======================================== */
+.btn-play-main {
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(0, 229, 255, 0.05)) !important;
+    border: 2px solid var(--primary) !important;
+    color: var(--primary) !important;
+    font-size: clamp(14px, 3vw, 18px) !important;
+    letter-spacing: 4px !important;
+    padding: 0 30px !important;
+    height: 56px !important;
+    line-height: 56px !important;
+    width: min(340px, 90vw) !important;
+    position: relative;
+    overflow: hidden;
+    text-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+}
+
+.btn-play-main::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.15), transparent);
+    animation: btn-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes btn-shimmer {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+}
+
+.btn-play-main:hover {
+    background: var(--primary) !important;
+    color: #000 !important;
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.5) !important;
+    text-shadow: none !important;
+}
+
+.title-nav-row {
+    margin-top: 10px !important;
+}
+
+/* ========================================
+   NAVIGATION BACK BUTTON
+   ======================================== */
+.nav-back-btn {
+    position: absolute;
+    top: clamp(15px, 3vh, 30px);
+    left: clamp(15px, 3vw, 30px);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #aaa;
+    padding: 8px 18px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.nav-back-btn:hover {
+    color: #fff;
+    border-color: var(--primary);
+    background: rgba(0, 229, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+}
+
+/* ========================================
+   PAGE HEADING (Shared)
+   ======================================== */
+.page-heading {
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: clamp(3px, 1vw, 8px);
+    text-align: center;
+    margin-bottom: clamp(15px, 3vh, 30px);
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+/* ========================================
+   MODE SELECT SCREEN - Big Cards
+   ======================================== */
+#mode-select-screen {
+    z-index: 300;
+}
+
+.mode-cards-container {
+    display: flex;
+    gap: clamp(15px, 3vw, 30px);
+    justify-content: center;
+    align-items: stretch;
+    flex-wrap: wrap;
+    max-width: 800px;
+    width: 90vw;
+    pointer-events: auto;
+}
+
+.mode-card {
+    flex: 1;
+    min-width: 240px;
+    max-width: 360px;
+    background: rgba(10, 10, 10, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: clamp(20px, 3vh, 35px) clamp(15px, 3vw, 30px);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.mode-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mode-card-endless::before {
+    background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+}
+
+.mode-card-dungeons::before {
+    background: linear-gradient(90deg, transparent, #ff9800, transparent);
+}
+
+.mode-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 15px 60px rgba(0, 0, 0, 0.6);
+}
+
+.mode-card:hover::before {
+    opacity: 1;
+}
+
+.mode-card-endless:hover {
+    border-color: rgba(0, 229, 255, 0.4);
+    box-shadow: 0 15px 60px rgba(0, 229, 255, 0.15), inset 0 0 30px rgba(0, 229, 255, 0.05);
+}
+
+.mode-card-dungeons:hover {
+    border-color: rgba(255, 152, 0, 0.4);
+    box-shadow: 0 15px 60px rgba(255, 152, 0, 0.15), inset 0 0 30px rgba(255, 152, 0, 0.05);
+}
+
+.mode-card-icon {
+    font-size: clamp(36px, 6vh, 56px);
+    margin-bottom: 12px;
+    line-height: 1;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.mode-card-endless .mode-card-icon { color: #00e5ff; }
+.mode-card-dungeons .mode-card-icon { color: #ff9800; }
+
+.mode-card-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(18px, 3vw, 24px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.mode-card-subtitle {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: #666;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.mode-card-desc {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.mode-card-tags {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.mc-tag {
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #888;
+}
+
+.mode-card-endless:hover .mc-tag {
+    border-color: rgba(0, 229, 255, 0.3);
+    color: #00e5ff;
+}
+
+.mode-card-dungeons:hover .mc-tag {
+    border-color: rgba(255, 152, 0, 0.3);
+    color: #ff9800;
+}
+
+/* ========================================
+   ENDLESS CONFIG SCREEN - Variant Cards
+   ======================================== */
+#endless-config-screen {
+    z-index: 300;
+}
+
+.endless-variant-cards {
+    display: flex;
+    gap: clamp(12px, 2vw, 25px);
+    justify-content: center;
+    flex-wrap: wrap;
+    pointer-events: auto;
+    max-width: 600px;
+}
+
+.variant-card {
+    flex: 1;
+    min-width: 200px;
+    max-width: 260px;
+    background: rgba(10, 10, 10, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: clamp(15px, 2vh, 25px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.variant-card:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+}
+
+.variant-card.variant-active {
+    border-color: var(--primary);
+    background: rgba(0, 229, 255, 0.08);
+    box-shadow: 0 0 25px rgba(0, 229, 255, 0.15), inset 0 0 15px rgba(0, 229, 255, 0.05);
+}
+
+#variant-survival.variant-active {
+    border-color: #ff0055;
+    background: rgba(255, 0, 85, 0.08);
+    box-shadow: 0 0 25px rgba(255, 0, 85, 0.15), inset 0 0 15px rgba(255, 0, 85, 0.05);
+}
+
+.variant-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.variant-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+.variant-active .variant-name {
+    color: var(--primary);
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+#variant-survival.variant-active .variant-name {
+    color: #ff0055;
+    text-shadow: 0 0 10px rgba(255, 0, 85, 0.4);
+}
+
+.variant-desc {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.5;
+}
+
+/* ========================================
+   LEVEL SELECT SCREEN
+   ======================================== */
+#level-select-screen {
+    z-index: 300;
+    overflow-y: auto;
+    padding-top: 60px !important;
+    padding-bottom: 30px !important;
+}
+
+.level-tiers-container {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    max-width: 750px;
+    width: 90vw;
+    pointer-events: auto;
+}
+
+.level-tier {
+    width: 100%;
+}
+
+.tier-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.tier-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    white-space: nowrap;
+}
+
+.tier-1 { color: #4caf50; text-shadow: 0 0 10px rgba(76, 175, 80, 0.4); }
+.tier-2 { color: #ff9800; text-shadow: 0 0 10px rgba(255, 152, 0, 0.4); }
+.tier-3 { color: #f44336; text-shadow: 0 0 10px rgba(244, 67, 54, 0.4); }
+
+.tier-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.15), transparent);
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+.level-card {
+    background: rgba(10, 10, 10, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.level-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.level-card:hover:not(.level-locked) {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.level-card:hover:not(.level-locked)::before {
+    opacity: 1;
+}
+
+.level-card.level-locked {
+    opacity: 0.35;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+}
+
+.level-card.level-completed {
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.level-card.level-completed::before {
+    background: linear-gradient(90deg, transparent, #4caf50, transparent);
+    opacity: 0.6;
+}
+
+.level-card.level-perfect {
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.05);
+}
+
+.level-card.level-perfect::before {
+    background: linear-gradient(90deg, transparent, #ffd700, transparent);
+    opacity: 0.8;
+}
+
+.level-number {
+    font-family: 'Outfit', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.level-locked .level-number {
+    color: #555;
+}
+
+.level-name {
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #777;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.level-stars {
+    font-size: 12px;
+    letter-spacing: 2px;
+    line-height: 1;
+}
+
+.star-filled { color: #ffd700; text-shadow: 0 0 5px rgba(255, 215, 0, 0.4); }
+.star-empty { color: #333; }
+
+.level-lock-icon {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+/* Page transition animation */
+.overlay.page-enter {
+    animation: pageSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 
 /* ========================================
    LOADING SCREEN
@@ -1224,7 +1744,10 @@ button.joy-btn:active:not(.move-joy) {
 
 #start-screen:not(.hidden)~#global-wallet,
 #game-over-screen:not(.hidden)~#global-wallet,
-#achievement-overlay:not(.hidden)~#global-wallet {
+#achievement-overlay:not(.hidden)~#global-wallet,
+#mode-select-screen:not(.hidden)~#global-wallet,
+#endless-config-screen:not(.hidden)~#global-wallet,
+#level-select-screen:not(.hidden)~#global-wallet {
     display: flex;
 }
 
@@ -1722,6 +2245,13 @@ button.joy-btn:active:not(.move-joy) {
     box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
+#tab-crates.active {
+    border-color: #ffeb3b;
+    color: #ffeb3b;
+    background: rgba(255, 235, 59, 0.1);
+    box-shadow: 0 0 10px rgba(255, 235, 59, 0.2);
+}
+
 .spin-area {
     background: rgba(255, 235, 59, 0.05);
     border: 1px dashed #ffeb3b;
@@ -2032,5 +2562,807 @@ button.joy-btn:active:not(.move-joy) {
     justify-content: center;
     align-items: center;
     box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* ========================================
+   LOOT CRATE SYSTEM
+   ======================================== */
+
+/* ── Full-Screen Crate Overlay ── */
+.crate-overlay-fullscreen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: radial-gradient(circle at center, rgba(10, 10, 18, 0.9) 0%, rgba(0, 0, 0, 0.98) 100%);
+    backdrop-filter: blur(12px);
+    z-index: 5000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.crate-scene {
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+}
+
+/* ── Ambient Particles ── */
+.crate-particle-field {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.crate-ambient-particle {
+    position: absolute;
+    background: #00e5ff;
+    border-radius: 50%;
+    opacity: 0;
+    animation: crateParticleFloat 4s ease-in-out infinite;
+}
+
+@keyframes crateParticleFloat {
+    0% { opacity: 0; transform: translateY(0) scale(0.5); }
+    25% { opacity: 0.6; }
+    50% { opacity: 0.3; transform: translateY(-40px) scale(1); }
+    75% { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.5); }
+}
+
+/* ── 3D Crate ── */
+.crate-3d-wrapper {
+    perspective: 1200px;
+    width: 300px; height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    cursor: pointer;
+    position: relative;
+    transform-origin: center center;
+}
+
+/* Crate Shadow */
+.crate-ground-shadow {
+    position: absolute;
+    bottom: 40px;
+    width: 200px; height: 60px;
+    background: radial-gradient(ellipse at center, rgba(0, 229, 255, 0.2) 0%, transparent 70%);
+    filter: blur(15px);
+    border-radius: 50%;
+    transform: rotateX(75deg);
+    z-index: 5;
+    animation: shadowPulse 3s ease-in-out infinite;
+}
+
+@keyframes shadowPulse {
+    0%, 100% { opacity: 0.4; transform: rotateX(75deg) scale(1); }
+    50% { opacity: 0.6; transform: rotateX(75deg) scale(1.1); }
+}
+
+.crate-3d {
+    width: 140px; height: 90px;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateX(-15deg) rotateY(-25deg);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.crate-body, .crate-lid {
+    position: absolute;
+    width: 100%; height: 100%;
+    top: 0; left: 0;
+    transform-style: preserve-3d;
+}
+
+/* Base style for faces */
+.crate-face {
+    position: absolute;
+    border: 2px solid #00e5ff44;
+    background: linear-gradient(135deg, #14141f 0%, #0a0a14 50%, #1a1a2e 100%);
+    box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+}
+
+/* BODY FACES (140W x 90H x 90D) */
+.crate-front {
+    width: 140px; height: 90px;
+    transform: translateZ(45px); /* Half of depth */
+    background: linear-gradient(180deg, #1a1a2e 0%, #0a0a14 40%, #14141f 100%);
+    border-color: #00e5ff33;
+}
+.crate-back {
+    width: 140px; height: 90px;
+    transform: translateZ(-45px) rotateY(180deg);
+}
+.crate-left {
+    width: 90px; height: 90px;
+    left: 25px; /* (140 - 90)/2 */
+    transform: rotateY(-90deg) translateZ(70px); /* Half of width */
+}
+.crate-right {
+    width: 90px; height: 90px;
+    left: 25px;
+    transform: rotateY(90deg) translateZ(70px);
+}
+.crate-bottom {
+    width: 140px; height: 90px;
+    top: 0px; 
+    transform: rotateX(-90deg) translateZ(45px); /* Half of height */
+}
+
+/* LID STRUCTURE */
+.crate-lid {
+    transform-origin: center top; 
+    transform: translateZ(45px) translateY(-45px) rotateX(90deg) translateZ(45px); 
+    /* The above centers it perfectly over the body for the hinge logic below */
+}
+.crate-lid {
+    /* Better hinge approach: place lid exactly at the top back edge */
+    width: 140px; height: 90px;
+    transform-style: preserve-3d;
+    transform-origin: center top; /* Hinge on back edge of top face */
+    transform: rotateX(90deg) translateY(-45px) translateZ(44px); 
+    /* translateZ brings it "up" to the top edge (45px half height). translateY centers depth. */
+    z-index: 10;
+}
+
+.crate-lid-top {
+    width: 140px; height: 90px;
+    background: linear-gradient(135deg, #25253d 0%, #1a1a2e 100%);
+    border: 2px solid #00e5ff88;
+}
+
+/* Neon Seams - Adjust for rect */
+.crate-seam-h {
+    position: absolute; width: 144px; height: 2px;
+    top: 45px; left: -2px; transform: translateZ(46px);
+    background: #00e5ff; box-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff44;
+}
+.crate-seam-v {
+    position: absolute; width: 2px; height: 94px;
+    top: -2px; left: 69px; transform: translateZ(46px);
+    background: #00e5ff; box-shadow: 0 0 10px #00e5ff;
+}
+.crate-seam-h2 {
+    position: absolute; width: 144px; height: 2px;
+    top: 45px; left: -2px; /* On Lid */
+    background: #00e5ff; box-shadow: 0 0 10px #00e5ff;
+}
+
+/* Inner glow */
+.crate-inner-glow {
+    position: absolute;
+    width: 140px; height: 90px;
+    transform: rotateX(90deg) translateZ(-45px); /* Inside the floor/middle */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    border-radius: 4px;
+    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 80%);
+}
+
+/* Front lock design on front face */
+.crate-front::before {
+    content: '◈'; position: absolute; top: 50%; left: 50%; 
+    transform: translate(-50%, -50%); font-size: 24px; color: #00e5ff;
+    text-shadow: 0 0 15px #00e5ff; z-index: 2; transition: transform 0.5s ease;
+}
+.crate-front.crate-lock-twisting::before {
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.2); color: #fff; text-shadow: 0 0 30px #fff;
+}
+
+/* ── Crate Animations ── */
+
+/* Idle */
+.crate-anim-idle { animation: crateIdle 3s ease-in-out infinite; }
+@keyframes crateIdle {
+    0%, 100% { transform: rotateX(-15deg) rotateY(-25deg) translateY(0); }
+    50% { transform: rotateX(-15deg) rotateY(-25deg) translateY(-8px); }
+}
+
+/* Shake */
+.crate-anim-shake { animation: crateShake 0.15s infinite; }
+@keyframes crateShake {
+    0% { transform: rotateX(-15deg) rotateY(-25deg) translate(3px, 2px) rotate(1deg); }
+    20% { transform: rotateX(-15deg) rotateY(-25deg) translate(-2px, -3px) rotate(-1deg); }
+    40% { transform: rotateX(-15deg) rotateY(-25deg) translate(-4px, 1px) rotate(2deg); }
+    60% { transform: rotateX(-15deg) rotateY(-25deg) translate(4px, 3px) rotate(-1deg); }
+    80% { transform: rotateX(-15deg) rotateY(-25deg) translate(-3px, -2px) rotate(1deg); }
+    100% { transform: rotateX(-15deg) rotateY(-25deg) translate(2px, -1px) rotate(-2deg); }
+}
+
+/* Lid Opening Keyframes */
+@keyframes crateOpenHinge {
+    0% { transform: rotateX(90deg) translateY(-45px) translateZ(44px); }
+    100% { transform: rotateX(90deg) translateY(-45px) translateZ(44px) rotateX(-110deg); }
+}
+
+.crate-lid.open {
+    animation: crateOpenHinge 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.crate-tap-prompt {
+    position: absolute;
+    bottom: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #00e5ff;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    text-shadow: 0 0 15px #00e5ff;
+    animation: tapPulse 1.5s ease-in-out infinite;
+    z-index: 10;
+    cursor: pointer;
+    padding: 15px 30px;
+}
+
+@keyframes tapPulse {
+    0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
+    50% { opacity: 0.5; transform: translateX(-50%) scale(1.05); }
+}
+
+/* ── Glitch Overlay ── */
+.crate-glitch-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 20;
+    opacity: 0;
+    mix-blend-mode: screen;
+}
+
+.crate-glitch-active {
+    animation: crateGlitchFlash 0.15s steps(3) forwards;
+}
+
+@keyframes crateGlitchFlash {
+    0% { opacity: 1; background: linear-gradient(transparent 0%, rgba(0, 229, 255, 0.15) 3%, transparent 3.5%, transparent 7%, rgba(255, 0, 85, 0.1) 7.5%, transparent 8%); background-size: 100% 10px; }
+    33% { opacity: 0.8; background: rgba(255, 0, 85, 0.08); transform: translateX(-5px); }
+    66% { opacity: 0.6; background: rgba(0, 229, 255, 0.08); transform: translateX(5px); }
+    100% { opacity: 0; }
+}
+
+/* ── Energy Particles ── */
+.crate-energy-burst {
+    position: absolute;
+    top: -20px; /* Shifted up slightly towards opening */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 8;
+}
+
+.crate-energy-particle {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    animation: energyParticleExplode 1.5s ease-out forwards;
+}
+
+@keyframes energyParticleExplode {
+    0% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; filter: brightness(2); }
+    100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; filter: brightness(1); }
+}
+
+/* Burst Rays */
+.crate-burst-ray {
+    position: absolute;
+    width: 4px;
+    height: 0;
+    top: 50%; left: 50%;
+    transform-origin: center bottom; /* Origin from within */
+    animation: burstRayExpand 1.2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+    opacity: 0;
+    filter: blur(1px);
+}
+
+@keyframes burstRayExpand {
+    0% { height: 0; opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot)) translateY(0); filter: brightness(3); }
+    40% { height: 350px; opacity: 1; transform: translate(-50%, -50%) rotate(var(--rot)) translateY(-50px); filter: brightness(1.5); }
+    100% { height: 600px; opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot)) translateY(-150px); filter: brightness(1); }
+}
+
+/* ── Full Screen Light Flash ── */
+.crate-light-explosion {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 250vw; height: 250vw; /* Using vw keeps it perfectly circular */
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 100; /* Above everything during the burst */
+    display: none;
+    opacity: 0;
+}
+
+.crate-light-burst-anim {
+    animation: lightFromChest 1.8s cubic-bezier(0.25, 1, 0.3, 1) forwards;
+}
+
+@keyframes lightFromChest {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0); filter: brightness(4); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(0.15); filter: brightness(3); }
+    40% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); filter: brightness(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); filter: brightness(1); }
+}
+
+.crate-volumetric-beam {
+    position: absolute;
+    bottom: 50%; left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 0;
+    filter: blur(20px);
+    z-index: 9;
+    animation: beamShoot 1.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes beamShoot {
+    0% { height: 0; opacity: 0; filter: brightness(4) blur(10px); }
+    15% { height: 40vh; opacity: 1; filter: brightness(2) blur(20px); }
+    50% { height: 100vh; opacity: 0.8; filter: brightness(1) blur(30px); }
+    100% { height: 150vh; opacity: 0; filter: brightness(1) blur(40px); }
+}
+
+/* ── Reward Reveal ── */
+.crate-reward-reveal {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 30;
+}
+
+.crate-reward-card {
+    width: min(420px, 90vw);
+    background: rgba(8, 8, 18, 0.98);
+    border: 3px solid #00e5ff;
+    border-radius: 20px;
+    padding: 50px 35px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(25px);
+    transform: scale(0.4) rotateY(180deg) translateZ(-500px);
+    opacity: 0;
+    transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.6s ease;
+    box-shadow: 0 0 100px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0, 229, 255, 0.05);
+}
+
+.crate-card-reveal {
+    transform: scale(1) rotateY(0deg) !important;
+    opacity: 1 !important;
+}
+
+.crate-reward-glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 250%; height: 250%;
+    pointer-events: none;
+    z-index: 0;
+    animation: rotateGlow 8s linear infinite;
+    opacity: 0.3;
+}
+
+.crate-reward-scanline {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+        transparent 0px, 
+        transparent 3px, 
+        rgba(0, 229, 255, 0.02) 3px, 
+        rgba(0, 229, 255, 0.02) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.crate-reward-header {
+    font-size: 12px;
+    letter-spacing: 5px;
+    color: #888;
+    font-weight: 900;
+    margin-bottom: 15px;
+    z-index: 2;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.crate-reward-name {
+    font-size: 32px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    z-index: 2;
+    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.5);
+    animation: rewardNameGlow 2s ease-in-out infinite;
+}
+
+@keyframes rewardNameGlow {
+    0%, 100% { text-shadow: 0 2px 15px rgba(0, 0, 0, 0.5); }
+    50% { text-shadow: 0 2px 25px rgba(0, 229, 255, 0.3); }
+}
+
+.crate-reward-rarity {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    margin-bottom: 25px;
+    z-index: 2;
+}
+
+.crate-reward-preview-box {
+    width: 100%;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 25px;
+    z-index: 2;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.crate-reward-trail-preview {
+    border-radius: 3px;
+}
+
+.crate-dup-msg {
+    font-size: 12px;
+    color: #ffeb3b;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 10px 15px;
+    background: rgba(255, 235, 59, 0.08);
+    border: 1px solid rgba(255, 235, 59, 0.3);
+    border-radius: 6px;
+    margin-bottom: 20px;
+    z-index: 2;
+    text-shadow: 0 0 10px rgba(255, 235, 59, 0.3);
+    animation: dupPulse 1.5s ease infinite;
+}
+
+@keyframes dupPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(255, 235, 59, 0.1); }
+    50% { box-shadow: 0 0 25px rgba(255, 235, 59, 0.3); }
+}
+
+@keyframes rotateGlow {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.crate-reward-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    width: 100%;
+    z-index: 2;
+}
+
+.crate-btn {
+    padding: 12px 25px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: transparent;
+    border: 2px solid #fff;
+    color: #fff;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    flex: 1;
+    min-width: 120px;
+}
+
+.crate-btn-collect {
+    background: #fff;
+    color: #000;
+}
+
+.crate-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+.crate-btn-equip:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.crate-btn-collect:hover {
+    background: #e0e0e0;
+}
+
+
+/* ========================================
+   CRATE SHOP TAB
+   ======================================== */
+
+.crate-purchase-area {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(0, 229, 255, 0.03);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.crate-purchase-area::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+        transparent 0px, transparent 3px,
+        rgba(0, 229, 255, 0.01) 3px, rgba(0, 229, 255, 0.01) 4px
+    );
+    pointer-events: none;
+}
+
+/* Mini 3D Crate */
+.crate-purchase-visual {
+    perspective: 400px;
+    width: 80px; height: 80px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.crate-mini-3d {
+    width: 55px; height: 50px;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: miniCrateSpin 6s ease-in-out infinite;
+}
+
+@keyframes miniCrateSpin {
+    0%, 100% { transform: rotateX(-15deg) rotateY(-25deg); }
+    50% { transform: rotateX(-15deg) rotateY(25deg); }
+}
+
+.crate-mini-face {
+    position: absolute;
+    border: 1px solid #00e5ff44;
+    background: linear-gradient(135deg, #14141f, #0a0a14);
+}
+
+.crate-mini-front {
+    width: 55px; height: 50px;
+    transform: translateZ(27px);
+}
+.crate-mini-front::after {
+    content: '◈';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    color: #00e5ff;
+    text-shadow: 0 0 8px #00e5ff;
+}
+
+.crate-mini-back {
+    width: 55px; height: 50px;
+    transform: translateZ(-27px) rotateY(180deg);
+}
+.crate-mini-left {
+    width: 54px; height: 50px;
+    transform: rotateY(-90deg) translateZ(27px);
+}
+.crate-mini-right {
+    width: 54px; height: 50px;
+    transform: rotateY(90deg) translateZ(27px);
+}
+.crate-mini-top {
+    width: 55px; height: 54px;
+    transform: rotateX(90deg) translateZ(25px);
+    background: linear-gradient(180deg, #1e1e30, #14141f);
+    border-color: #00e5ff55;
+}
+.crate-mini-bottom {
+    width: 55px; height: 54px;
+    transform: rotateX(-90deg) translateZ(25px);
+}
+
+.crate-mini-seam {
+    position: absolute;
+    width: 57px; height: 2px;
+    background: #00e5ff;
+    box-shadow: 0 0 6px #00e5ff;
+    top: 50%; left: -1px;
+    transform: translateZ(28px);
+}
+
+.crate-purchase-info {
+    flex-grow: 1;
+}
+
+.crate-purchase-name {
+    font-size: 18px;
+    font-weight: 900;
+    color: #00e5ff;
+    letter-spacing: 2px;
+    text-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+    margin-bottom: 4px;
+}
+
+.crate-purchase-desc {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+
+.crate-purchase-stock {
+    font-size: 11px;
+    color: #aaa;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.crate-count-badge {
+    color: #ffeb3b;
+    background: rgba(255, 235, 59, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+}
+
+.crate-purchase-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.crate-buy-btn {
+    border-color: #00e5ff !important;
+    color: #00e5ff !important;
+}
+
+.crate-open-btn {
+    border-color: #ffeb3b !important;
+    color: #ffeb3b !important;
+    background: rgba(255, 235, 59, 0.1) !important;
+}
+.crate-open-btn:hover:not(:disabled) {
+    background: #ffeb3b !important;
+    color: #000 !important;
+    box-shadow: 0 0 20px #ffeb3b !important;
+}
+
+/* Drop Rates */
+.crate-drop-rates {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+.crate-rate-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.crate-rate-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.crate-rate-name {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    flex-grow: 1;
+}
+
+.crate-rate-pct {
+    font-size: 12px;
+    color: #666;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+}
+
+/* Trail Archive Grid */
+.crate-trail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.crate-trail-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+}
+
+.crate-trail-card.crate-unlocked {
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.crate-trail-card.crate-unlocked:hover {
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.crate-trail-card.crate-locked {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
+
+.crate-trail-card.crate-equipped {
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+}
+
+.crate-trail-rarity-pip {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    position: absolute;
+    top: 6px; right: 6px;
+}
+
+.crate-trail-card-name {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.crate-trail-preview-bar {
+    border-radius: 3px;
+}
+
+.crate-trail-card-rarity {
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+.crate-trail-card-status {
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
 }
 

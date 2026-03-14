@@ -84,7 +84,7 @@ const COLORS = {
 
 // --- 3. SYSTEM STATE ---
 let gameState = 'START';
-let isSurvivalMode = true;
+let isSurvivalMode = false;
 let isTeleporting = false;
 let teleportTimer = 0;
 let teleportTargetX = 0;
@@ -976,6 +976,22 @@ class PlayerTitan {
         }
 
         if (this.muzzleFlash > 0) this.muzzleFlash -= dt * 15;
+
+        // --- Rarity-Specific Special Effects (Particles) ---
+        if (equippedTrail && !this.isCompromised) {
+            if (equippedTrail.rarity === 'MYTHIC') {
+                // Mythic trails leave constant unique effects
+                if (Math.random() > 0.4) {
+                    const particleColor = equippedTrail.color && !equippedTrail.color.startsWith('linear') ? equippedTrail.color : COLORS.primary;
+                    emitParticles(this.x + this.w / 2, this.y + this.h / 2, 'BITS', particleColor, 1, 100);
+                }
+            } else if (equippedTrail.rarity === 'LEGENDARY') {
+                // Legendary trails have subtle sparkles
+                if (Math.random() > 0.8) {
+                    emitParticles(this.x + this.w / 2, this.y + this.h / 2, 'BITS', '#fff', 1, 150);
+                }
+            }
+        }
     }
 
     update(dt) {
@@ -1248,7 +1264,7 @@ class PlayerTitan {
                 if (t.style.type === 'solid' || t.style.type === 'glow') {
                     trailColor = t.style.color;
                     if (t.style.type === 'glow') useGlow = true;
-                } else if (t.style.type === 'gradient') {
+                } else if (t.style.type.includes('gradient')) {
                     // Optimized color approximations
                     if (t.style.id === 'gradient_fire') {
                         trailColor = `rgb(255, ${Math.floor(255 * (1 - t.life))}, 0)`;
@@ -1260,11 +1276,31 @@ class PlayerTitan {
                         // Mythic Void Nebula Pulse
                         trailColor = `hsl(${(Date.now() / 15 + i * 5) % 60 + 260}, 100%, ${50 + Math.sin(Date.now() * 0.005 + i) * 20}%)`;
                         useGlow = true;
+                    } else if (t.style.id === 'azure_streak') {
+                        trailColor = `rgb(0, ${Math.floor(131 + (t.life) * 49)}, ${176 + Math.floor(t.life*43)})`;
+                    } else if (t.style.id === 'void_ribbon') {
+                        trailColor = `rgb(${142 + Math.floor((1-t.life)*113)}, 45, ${226 - Math.floor((1-t.life)*141)})`;
+                    } else if (t.style.id === 'solar_flare') {
+                        trailColor = `rgb(248, ${Math.floor(54 + (1-t.life)*158)}, ${Math.floor((1-t.life)*35)})`;
+                        useGlow = true;
+                    } else if (t.style.id === 'glacier_edge') {
+                        trailColor = `rgb(${Math.floor((1-t.life)*146)}, ${210 - Math.floor((1-t.life)*69)}, ${255 - Math.floor((1-t.life)*84)})`;
+                    } else if (t.style.id === 'abyssal_vortex') {
+                        trailColor = `hsl(${(Date.now() / 5 + i * 15) % 60 + 330}, 100%, 50%)`; // Red/Violet swirl
+                        useGlow = true;
+                    } else if (t.style.id === 'mythic_boxes' || t.style.id === 'mythic_glitch' || t.style.type.includes('mythic')) {
+                       // Unique Mythic pulse gradient
+                       trailColor = `hsl(${(Date.now() / 10 + i * 20) % 360}, 80%, 60%)`;
+                       useGlow = true;
                     } else {
                         trailColor = t.style.color || COLORS.primary;
+                        if (trailColor && typeof trailColor === 'string' && trailColor.startsWith('linear-gradient')) {
+                            const match = trailColor.match(/#(?:[0-9a-fA-F]{3}){1,2}/);
+                            trailColor = match ? match[0] : COLORS.primary;
+                        }
                     }
                 } else if (t.style.type === 'special') {
-                    if (t.style.id === 'legend_rainbow') {
+                    if (t.style.id === 'legend_rainbow' || t.style.id === 'infinity_loop' || t.style.color === 'rainbow') {
                         trailColor = `hsl(${(Date.now() / 10 + i * 15) % 360}, 100%, 50%)`;
                         useGlow = true;
                     }
@@ -1275,7 +1311,8 @@ class PlayerTitan {
                     trailColor = t.style.color || '#ff00ff';
                     useGlow = true;
                 } else if (t.style.type === 'glitch') {
-                    trailColor = Math.random() > 0.7 ? '#fff' : (Math.random() > 0.5 ? '#ff0055' : '#00e5ff');
+                    const baseColor = t.style.color || '#00e5ff';
+                    trailColor = Math.random() > 0.7 ? '#fff' : (Math.random() > 0.5 ? baseColor : '#222');
                     useGlow = true;
                 }
             }
@@ -1286,14 +1323,14 @@ class PlayerTitan {
             }
 
             ctx.fillStyle = trailColor;
-            const sizeMod = (0.3 + (i / this.trail.length) * 0.7) * (t.style?.type === 'box' ? 1.4 : 1.0);
+            const sizeMod = (0.3 + (i / this.trail.length) * 0.7) * (t.style?.type.includes('box') ? 1.4 : 1.0);
             ctx.translate(t.x - camera.x + this.w / 2, t.y - camera.y + this.h / 2);
             ctx.rotate(this.rotation);
             
-            const trailW = (t.style?.type === 'box' ? 16 : this.w) * sizeMod;
-            const trailH = (t.style?.type === 'box' ? 16 : this.h) * sizeMod;
+            const trailW = (t.style?.type.includes('box') ? 16 : this.w) * sizeMod;
+            const trailH = (t.style?.type.includes('box') ? 16 : this.h) * sizeMod;
 
-            if (t.style?.type === 'box') {
+            if (t.style?.type.includes('box')) {
                 // Draw square particles for Mythic Box trail
                 ctx.fillRect(-trailW / 2, -trailH / 2, trailW, trailH);
                 ctx.strokeStyle = '#fff';
@@ -1303,7 +1340,7 @@ class PlayerTitan {
                 // Static internal dot
                 ctx.fillStyle = '#fff';
                 ctx.fillRect(-2, -2, 4, 4);
-            } else if (t.style?.type === 'glitch') {
+            } else if (t.style?.type.includes('glitch')) {
                 // Skewed glitchy bars
                 const offset = Math.sin(Date.now() * 0.05 + i) * 15;
                 if (Math.random() > 0.2) {
@@ -1511,8 +1548,18 @@ class HostileUnit {
         this.x = x; this.y = y;
         this.w = 48; this.h = 48; // Scaled up from 42 for better presence
         this.model = model;
-        this.integrity = model === 'SNIPER' ? 60 : (model === 'TANK' ? 250 : 120); // Harder enemies
-        this.recharge = random(0.5, 2.0); // Faster initial firing
+        
+        let difficultyMod = 1;
+        if (window.isDungeonMode && window.activeDungeonLevel) {
+            difficultyMod = 1 + (window.activeDungeonLevel.id * 0.15); // +15% per level, up to +225%
+        } else {
+            difficultyMod = 1 + (distanceTraveled / 50000); // Endless scaling
+        }
+        
+        this.integrity = (model === 'SNIPER' ? 60 : (model === 'TANK' ? 250 : 120)) * difficultyMod;
+        
+        // Faster initial firing for harder levels
+        this.recharge = random(0.5, 2.0) / Math.max(1, Math.sqrt(difficultyMod));
         this.oscOffset = Math.random() * 8;
         this.hasExpired = false;
         this.baseX = x;
@@ -1522,13 +1569,20 @@ class HostileUnit {
     update(dt, titan) {
         if (this.flashTimer > 0) this.flashTimer -= dt * 6;
         this.oscOffset += dt * 4;
-        const distMod = 1 + (distanceTraveled / 100000); // Gradual speed increase
+        
+        let speedMod = 1 + (distanceTraveled / 100000); // Gradual speed increase
+        let fireRateMod = 1 + (distanceTraveled / 150000);
+        
+        if (window.isDungeonMode && window.activeDungeonLevel) {
+            speedMod = 1 + (window.activeDungeonLevel.id * 0.1); 
+            fireRateMod = 1 + (window.activeDungeonLevel.id * 0.08); 
+        }
 
         if (this.model === 'DRONE') {
             this.y += Math.sin(this.oscOffset) * 1.8;
-            this.x -= 30 * distMod * dt; // Drones now drift left slowly
+            this.x -= 30 * speedMod * dt; // Drones now drift left slowly
         } else if (this.model === 'TANK') {
-            this.x -= 80 * distMod * dt; // Slow advance
+            this.x -= 80 * speedMod * dt; // Slow advance
         }
 
         this.recharge -= dt;
@@ -1536,7 +1590,8 @@ class HostileUnit {
             const distance = Math.hypot(titan.x - this.x, titan.y - this.y);
             if (distance < 900) {
                 this.executeFireSequence(titan);
-                this.recharge = this.model === 'SNIPER' ? 2.5 : (this.model === 'TANK' ? 3.5 : 1.2); // Differential fire rates
+                const baseRecharge = this.model === 'SNIPER' ? 2.5 : (this.model === 'TANK' ? 3.5 : 1.2); // Differential fire rates
+                this.recharge = baseRecharge / fireRateMod;
             }
         }
     }
@@ -1635,7 +1690,13 @@ class TitanBoss {
         this.x = x; this.y = y - 600;
         this.anchorY = y;
         this.w = 200; this.h = 200;
-        this.hitPoints = 1200 + (pLevel * 800);
+        
+        let diffMod = 1;
+        if (window.isDungeonMode && window.activeDungeonLevel) {
+            diffMod = 1 + (window.activeDungeonLevel.id * 0.15); // +15% per level
+        }
+        
+        this.hitPoints = (1200 + (pLevel * 800)) * diffMod;
         this.maxHitPoints = this.hitPoints;
         this.pLevel = pLevel;
         this.phaseTimer = 0;
@@ -1655,9 +1716,14 @@ class TitanBoss {
             return;
         }
 
-        this.phaseTimer += dt;
-        this.cycleTime += dt;
-        this.shotCounter += dt;
+        let speedMod = 1;
+        if (window.isDungeonMode && window.activeDungeonLevel) {
+            speedMod = 1 + (window.activeDungeonLevel.id * 0.05); // Faster boss tracking and firing
+        }
+
+        this.phaseTimer += dt * speedMod;
+        this.cycleTime += dt * speedMod;
+        this.shotCounter += dt * speedMod;
 
         // Fluid Tracking Logic
         this.x = lerp(this.x, titan.x + 650 + Math.sin(this.phaseTimer) * 450, 0.05);
@@ -2100,9 +2166,25 @@ function buildWorldSectors(rangeX, unlimited = false) {
         }
 
         // Hostile Population (Increased Density)
-        if (Math.random() > 0.25) {
-            const hModel = Math.random() > 0.85 ? 'SNIPER' : (Math.random() > 0.7 ? 'TANK' : 'DRONE');
-            enemies.push(new HostileUnit(platX + platW / 2, platY - 55, hModel));
+        if (window.isDungeonMode && window.activeDungeonLevel) {
+            const lvl = window.activeDungeonLevel;
+            const spawnChance = lvl.enemyDensity;
+            if (Math.random() < spawnChance) {
+                const types = lvl.enemyTypes || ['DRONE'];
+                const hModel = types[Math.floor(Math.random() * types.length)];
+                enemies.push(new HostileUnit(platX + platW / 2, platY - 55, hModel));
+                
+                // Spawn extra enemies based on high density
+                if (lvl.enemyDensity >= 0.7 && Math.random() < (lvl.enemyDensity - 0.5)) {
+                    const extraModel = types[Math.floor(Math.random() * types.length)];
+                    enemies.push(new HostileUnit(platX + platW / 2 + random(80, platW / 2 - 50), platY - 55, extraModel));
+                }
+            }
+        } else {
+            if (Math.random() > 0.25) {
+                const hModel = Math.random() > 0.85 ? 'SNIPER' : (Math.random() > 0.7 ? 'TANK' : 'DRONE');
+                enemies.push(new HostileUnit(platX + platW / 2, platY - 55, hModel));
+            }
         }
 
         // Logistics Population
@@ -2362,6 +2444,20 @@ function rebootSystem() {
     syncFill.style.width = '0%';
     uiLayer.classList.remove('overdrive-active', 'neural-overdrive');
     weatherSystems = [];
+
+    // Survival Mode Thematic Swaps
+    if (isSurvivalMode) {
+        COLORS.primary = '#ff0055';
+        COLORS.bg = '#1a0005';
+        COLORS.grid = 'rgba(255, 0, 85, 0.05)';
+        document.getElementById('health-fill').style.background = 'linear-gradient(90deg, #ff0000, #ff0055)';
+        triggerCombatAlert("CRITICAL: BIOMETRIC DECAY DETECTED", "#ff0055", "⚠");
+    } else {
+        COLORS.primary = '#00e5ff';
+        COLORS.bg = '#121212';
+        COLORS.grid = 'rgba(255, 255, 255, 0.02)';
+        document.getElementById('health-fill').style.background = 'linear-gradient(90deg, #00b4db, #0083b0)';
+    }
     
     // Core Distances Reset
     distanceTraveled = 0;
@@ -2697,6 +2793,19 @@ function tick(timestamp) {
         if (!player) { gameState = 'START'; startScreen.classList.remove('hidden'); return requestAnimationFrame(tick); }
         player.update(delta);
 
+        // Survival Mode: Biometric Decay
+        if (isSurvivalMode && !isStartupPhase && !isTeleporting && !player.isCompromised) {
+            player.hp -= 2.5 * delta; // Drain 2.5 HP per second
+            if (player.hp <= 0) {
+                player.hp = 0;
+                player.isCompromised = true;
+                initiateSystemHalt('BIOMETRIC DECAY');
+            }
+            healthFill.style.width = `${Math.ceil(player.hp)}%`;
+            if (player.hp < 35) document.body.classList.add('danger');
+            else document.body.classList.remove('danger');
+        }
+
         // Smooth Multi-Point Camera (Adjusted for World Scale)
         const viewW = canvas.width * INV_SCALE;
         const viewH = canvas.height * INV_SCALE;
@@ -2745,6 +2854,9 @@ function tick(timestamp) {
 
         // Global Statistics
         processScoring(delta);
+
+        // Dungeon Level Progress Check
+        if (window.checkDungeonProgress) window.checkDungeonProgress();
 
         // Visual Updates
         player.updateVisuals(delta);
@@ -2971,8 +3083,8 @@ function handleEntityDynamics(delta) {
     if (boss) {
         boss.update(delta, player);
     } else {
-        // Boss Spawn Check
-        if (distanceTraveled - lastBossCheckpoint > BOSS_INTERVAL) {
+        // Boss Spawn Check (only in endless mode — dungeon system handles its own bosses)
+        if (!window.isDungeonMode && distanceTraveled - lastBossCheckpoint > BOSS_INTERVAL) {
             triggerTitanIncursion();
             lastBossCheckpoint = distanceTraveled;
             currentZone++;
@@ -3093,6 +3205,15 @@ function flagEnemyKill(en) {
     emitParticles(en.x + en.w / 2, en.y + en.h / 2, 'BITS', '#fff', 10, 250);
     floatingTexts.push(new FloatingScore(en.x + en.w / 2, en.y, `+${Math.floor(gain)}`, COLORS.white, 22 + comboCount));
 
+    if (isSurvivalMode && player && !player.isCompromised) {
+        // Kill restores health
+        const healAmt = en.type === 'HEAVY' ? 10 : 5;
+        player.hp = Math.min(player.maxHp, player.hp + healAmt);
+        healthFill.style.width = `${Math.ceil(player.hp)}%`;
+        if (player.hp >= 35) document.body.classList.remove('danger');
+        floatingTexts.push(new FloatingScore(player.x + player.w/2, player.y - 20, `+${healAmt} HP`, '#ff0055', 20));
+    }
+
     // Achievement: Kill + Combo
     if (window.checkAchievementConditions) {
         window.checkAchievementConditions('ENEMY_KILL', { type: en.model });
@@ -3137,6 +3258,13 @@ function finalizeBoss() {
     emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, 'NORMAL', COLORS.boss, 100, 1000);
     emitParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, 'SMOKE', '#000', 30, 200);
     floatingTexts.push(new FloatingScore(boss.x + boss.w / 2, boss.y, `TITAN ERADICATED +${hugeGain}`, COLORS.primary, 45));
+
+    if (isSurvivalMode && player && !player.isCompromised) {
+        player.hp = Math.min(player.maxHp, player.hp + 40);
+        healthFill.style.width = `${Math.ceil(player.hp)}%`;
+        if (player.hp >= 35) document.body.classList.remove('danger');
+        floatingTexts.push(new FloatingScore(player.x + player.w/2, player.y - 40, `+40 HP`, '#ff0055', 30));
+    }
 
     // Achievement: Boss Defeat
     if (window.checkAchievementConditions) window.checkAchievementConditions('BOSS_DEFEAT');
@@ -3477,6 +3605,57 @@ function drawFrame(delta) {
     floatingTexts.forEach(ft => ft.draw());
     alerts.forEach((alert, i) => alert.draw(i));
 
+    // Dungeon Progress HUD
+    if (window.isDungeonMode && window.activeDungeonLevel && gameState === 'PLAYING') {
+        const dlvl = window.activeDungeonLevel;
+        const prog = Math.min(1.0, distanceTraveled / dlvl.distance);
+        const barW = 300;
+        const barH = 10;
+        const barX = (canvas.width - barW) / 2;
+        const barY = canvas.height - 50;
+
+        ctx.save();
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(barX - 10, barY - 25, barW + 20, 50);
+        ctx.strokeStyle = 'rgba(255, 152, 0, 0.3)';
+        ctx.strokeRect(barX - 10, barY - 25, barW + 20, 50);
+
+        // Label
+        ctx.fillStyle = '#ff9800';
+        ctx.font = '900 11px Outfit';
+        ctx.textAlign = 'center';
+        ctx.fillText(`⚔ ${dlvl.name} — ${Math.floor(prog * 100)}%`, canvas.width / 2, barY - 8);
+
+        // Bar track
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.fillRect(barX, barY, barW, barH);
+
+        // Bar fill
+        const grad = ctx.createLinearGradient(barX, 0, barX + barW * prog, 0);
+        grad.addColorStop(0, '#ff9800');
+        grad.addColorStop(1, '#ffeb3b');
+        ctx.fillStyle = grad;
+        ctx.fillRect(barX, barY, barW * prog, barH);
+
+        // Boss marker at 70%
+        if (dlvl.bossLevel > 0) {
+            const bossX = barX + barW * 0.7;
+            ctx.strokeStyle = '#f44336';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(bossX, barY - 3);
+            ctx.lineTo(bossX, barY + barH + 3);
+            ctx.stroke();
+            ctx.fillStyle = '#f44336';
+            ctx.font = '700 8px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText('TITAN', bossX, barY + barH + 12);
+        }
+
+        ctx.restore();
+    }
+
     // Speed & Motion Juice
     if (gameState !== 'DYING') drawSpeedVignette();
 
@@ -3754,7 +3933,119 @@ function drawTransitionOverlay(dt) {
     ctx.restore();
 }
 
-// --- 14. TERMINAL HOOKS ---
+// --- 14. TERMINAL HOOKS (Multi-Page Navigation) ---
+
+// Page Elements
+const modeSelectScreen = document.getElementById('mode-select-screen');
+const endlessConfigScreen = document.getElementById('endless-config-screen');
+const levelSelectScreen = document.getElementById('level-select-screen');
+
+// Navigation Buttons
+const navPlayBtn = document.getElementById('nav-play-btn');
+const modeBackBtn = document.getElementById('mode-back-btn');
+const endlessBackBtn = document.getElementById('endless-back-btn');
+const levelsBackBtn = document.getElementById('levels-back-btn');
+const cardEndless = document.getElementById('card-endless');
+const cardDungeons = document.getElementById('card-dungeons');
+
+// Variant Selector
+const variantClassic = document.getElementById('variant-classic');
+const variantSurvival = document.getElementById('variant-survival');
+
+/**
+ * Page Navigation Helpers
+ */
+function showPage(el) {
+    el.classList.remove('hidden');
+    el.classList.add('page-enter');
+    // Remove animation class after it completes to allow re-trigger
+    setTimeout(() => el.classList.remove('page-enter'), 400);
+}
+
+function hidePage(el) {
+    el.classList.add('hidden');
+}
+
+function hideAllMenuPages() {
+    hidePage(startScreen);
+    hidePage(modeSelectScreen);
+    hidePage(endlessConfigScreen);
+    hidePage(levelSelectScreen);
+}
+
+// ─── TITLE SCREEN → MODE SELECT ───
+if (navPlayBtn) {
+    navPlayBtn.onclick = () => {
+        // Save username before leaving
+        if (usernameInput) {
+            playerName = usernameInput.value.trim().toUpperCase() || "GUEST_PILOT";
+            localStorage.setItem('cyberstrike_username', playerName);
+        }
+        hidePage(startScreen);
+        showPage(modeSelectScreen);
+    };
+}
+
+// ─── MODE SELECT → BACK TO TITLE ───
+if (modeBackBtn) {
+    modeBackBtn.onclick = () => {
+        hidePage(modeSelectScreen);
+        showPage(startScreen);
+    };
+}
+
+// ─── MODE SELECT → ENDLESS CONFIG ───
+if (cardEndless) {
+    cardEndless.onclick = () => {
+        hidePage(modeSelectScreen);
+        showPage(endlessConfigScreen);
+    };
+}
+
+// ─── MODE SELECT → LEVEL SELECT ───
+if (cardDungeons) {
+    cardDungeons.onclick = () => {
+        hidePage(modeSelectScreen);
+        showPage(levelSelectScreen);
+        // Render level grid
+        if (window.renderLevelGrid) window.renderLevelGrid();
+    };
+}
+
+// ─── ENDLESS CONFIG → BACK TO MODE SELECT ───
+if (endlessBackBtn) {
+    endlessBackBtn.onclick = () => {
+        hidePage(endlessConfigScreen);
+        showPage(modeSelectScreen);
+    };
+}
+
+// ─── LEVEL SELECT → BACK TO MODE SELECT ───
+if (levelsBackBtn) {
+    levelsBackBtn.onclick = () => {
+        hidePage(levelSelectScreen);
+        showPage(modeSelectScreen);
+    };
+}
+
+// ─── VARIANT SELECTOR (Classic / Survival) ───
+if (variantClassic) {
+    variantClassic.onclick = () => {
+        isSurvivalMode = false;
+        variantClassic.classList.add('variant-active');
+        if (variantSurvival) variantSurvival.classList.remove('variant-active');
+    };
+}
+
+if (variantSurvival) {
+    variantSurvival.onclick = () => {
+        isSurvivalMode = true;
+        variantSurvival.classList.add('variant-active');
+        if (variantClassic) variantClassic.classList.remove('variant-active');
+    };
+}
+
+// ─── START GAME (Endless Mode) ───
 startBtn.onclick = () => {
     initAudioSystem();
 
@@ -3764,48 +4055,78 @@ startBtn.onclick = () => {
         localStorage.setItem('cyberstrike_username', playerName);
     }
 
+    // Reset dungeon state in case we came from dungeon mode
+    if (window.resetDungeonState) window.resetDungeonState();
+
     triggerLoadingSequence(() => {
         gameState = 'PLAYING';
-        startScreen.classList.add('hidden');
+        hideAllMenuPages();
         rebootSystem();
         triggerCombatAlert(`NEURAL LINK ESTABLISHED: ${playerName}`, COLORS.primary, "🛰");
     }, 'loading_bg.png');
 };
 
+// ─── RESTART (Game Over) ───
 restartBtn.onclick = () => {
     triggerLoadingSequence(() => {
         gameState = 'PLAYING';
         gameOverScreen.classList.add('hidden');
+
+        // If we were in a dungeon, restart the same level
+        if (window.isDungeonMode && window.activeDungeonLevel) {
+            const lvlId = window.activeDungeonLevel.id;
+            if (window.startDungeonLevel) {
+                window.startDungeonLevel(lvlId);
+                return;
+            }
+        }
+
         rebootSystem();
     }, 'loading_bg.png');
 };
 
+// ─── HOME (Game Over → Title Screen) ───
 homeBtn.onclick = () => {
+    if (window.resetDungeonState) window.resetDungeonState();
     triggerLoadingSequence(() => {
         gameState = 'START';
         gameOverScreen.classList.add('hidden');
-        startScreen.classList.remove('hidden');
+        showPage(startScreen);
         startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
         renderLeaderboard('leaderboard-list');
     }, 'exiting_bg.png');
 };
 
+// ─── PAUSE CONTROLS ───
 pauseBtn.onpointerdown = (e) => {
     e.preventDefault();
     e.stopPropagation();
     togglePause();
 };
 resumeBtn.onclick = togglePause;
+
 pauseRestartBtn.onclick = () => {
     pauseScreen.classList.add('hidden');
+
+    // If dungeon mode, restart the dungeon level
+    if (window.isDungeonMode && window.activeDungeonLevel) {
+        const lvlId = window.activeDungeonLevel.id;
+        if (window.startDungeonLevel) {
+            window.startDungeonLevel(lvlId);
+            return;
+        }
+    }
+
     rebootFromCheckpoint();
     gameState = 'PLAYING';
 };
+
 pauseHomeBtn.onclick = () => {
     pauseScreen.classList.add('hidden');
+    if (window.resetDungeonState) window.resetDungeonState();
     triggerLoadingSequence(() => {
         gameState = 'START';
-        startScreen.classList.remove('hidden');
+        showPage(startScreen);
         startHighScoreEl.innerText = highScore.toString().padStart(6, '0');
         renderLeaderboard('leaderboard-list');
     }, 'exiting_bg.png');
@@ -3854,6 +4175,7 @@ requestAnimationFrame(tick);
 window.onload = () => {
     if (window.initAchievements) window.initAchievements();
     if (window.initShop) window.initShop();
+    if (window.renderLevelGrid) window.renderLevelGrid();
 };
 
 /**

@@ -2,8 +2,8 @@
  * ============================================================================
  * CYBERSTRIKE: TRAIL SYSTEM
  * ============================================================================
- * Handles unlocking, purchasing, and selecting player trails.
- * Includes a random spin (gacha) mechanic.
+ * Handles trail data, equipment, and the MY TRAILS equip panel.
+ * Unlocking now happens via the Crate System (crate-system.js).
  */
 
 const TRAIL_KEY = 'cyberstrike_trail_data';
@@ -26,28 +26,28 @@ const TRAILS = [
     
     // LEGENDARY (8%)
     { id: 'legend_rainbow', name: 'PRISM OVERDRIVE', color: 'rainbow', rarity: 'LEGENDARY', type: 'special' },
-    { id: 'legend_gold', name: 'GOLDEN PROTOCOL', color: '#ffd700', rarity: 'LEGENDARY', type: 'glow' },
-    { id: 'legend_matrix', name: 'SYSTEM BREAKER', color: '#00ff41', rarity: 'LEGENDARY', type: 'matrix' },
+    { id: 'legend_gold', name: 'GOLDEN PROTOCOL', color: 'linear-gradient(to right, #ffd700, #ff8c00)', rarity: 'LEGENDARY', type: 'glow' },
+    { id: 'legend_matrix', name: 'SYSTEM BREAKER', color: 'linear-gradient(to right, #00ff41, #008f11)', rarity: 'LEGENDARY', type: 'matrix' },
 
     // MYTHIC (2%)
-    { id: 'mythic_boxes', name: 'NEURAL BLOCKS', color: '#ff00ff', rarity: 'MYTHIC', type: 'box' },
-    { id: 'mythic_glitch', name: 'QUANTUM GHOST', color: '#ff0055', rarity: 'MYTHIC', type: 'glitch' },
-    { id: 'mythic_void', name: 'VOID NEBULA', color: '#aa00ff', rarity: 'MYTHIC', type: 'gradient', exclusive: true } 
+    { id: 'mythic_boxes', name: 'NEURAL PULSE', color: 'linear-gradient(to right, #ff00ff, #7b1fa2)', rarity: 'MYTHIC', type: 'gradient_box' },
+    { id: 'mythic_glitch', name: 'QUANTUM SHIFT', color: 'linear-gradient(to right, #ff0055, #00e5ff)', rarity: 'MYTHIC', type: 'gradient_glitch' },
+    { id: 'mythic_void', name: 'VOID NEBULA', color: 'linear-gradient(to right, #aa00ff, #0a0a1a)', rarity: 'MYTHIC', type: 'gradient', exclusive: true } 
 ];
 
 const RARITY_COLORS = {
-    'COMMON': '#ffffff',
+    'COMMON': '#e0e0e0',
     'UNCOMMON': '#00e5ff',
     'EPIC': '#a335ee',
-    'LEGENDARY': '#ffeb3b',
+    'LEGENDARY': '#ffff00',
     'MYTHIC': '#ff0000'
 };
 
 const RARITY_BG_COLORS = {
-    'COMMON': 'rgba(255, 255, 255, 0.05)',
+    'COMMON': 'rgba(224, 224, 224, 0.05)',
     'UNCOMMON': 'rgba(0, 229, 255, 0.1)',
     'EPIC': 'rgba(163, 53, 238, 0.15)',
-    'LEGENDARY': 'rgba(255, 235, 59, 0.15)',
+    'LEGENDARY': 'rgba(255, 255, 0, 0.15)',
     'MYTHIC': 'rgba(255, 0, 0, 0.2)'
 };
 
@@ -57,14 +57,7 @@ let trailData = {
     cratesOpened: 0
 };
 
-function getCrateCost() {
-    const costs = [500, 1500, 2500, 5000];
-    return costs[Math.min(trailData.cratesOpened, costs.length - 1)];
-}
-
 function initTrails() {
-    // TEMPORARY: Reset for testing animations
-    /*
     const saved = localStorage.getItem(TRAIL_KEY);
     if (saved) {
         try {
@@ -76,8 +69,6 @@ function initTrails() {
             console.error('Failed to load trail data:', e);
         }
     }
-    */
-    renderTrailShop();
 }
 
 function saveTrails() {
@@ -85,142 +76,33 @@ function saveTrails() {
 }
 
 function getEquippedTrail() {
+    // Check crate trails first, then original trails
+    if (window.getEquippedCrateTrail) {
+        const crateTrail = window.getEquippedCrateTrail();
+        if (crateTrail) return crateTrail;
+    }
     return TRAILS.find(t => t.id === trailData.equipped) || TRAILS[0];
 }
 
-function spinForTrail() {
-    const currentCost = getCrateCost();
-    
-    // Filter out already owned trails AND exclusive trails (achievement rewards)
-    const lockedTrails = TRAILS.filter(t => !trailData.unlocked.includes(t.id) && !t.exclusive);
-    
-    if (lockedTrails.length === 0) {
-        triggerCombatAlert("ALL NEURAL UNITS ARCHIVED", "#fff", "✓");
-        return null;
-    }
-
-    if (window.deductNeuralCredits && window.deductNeuralCredits(currentCost)) {
-        const rand = Math.random() * 100;
-        let rarityChosen = 'COMMON';
-
-        if (rand < 2) rarityChosen = 'MYTHIC';
-        else if (rand < 10) rarityChosen = 'LEGENDARY';
-        else if (rand < 25) rarityChosen = 'EPIC';
-        else if (rand < 50) rarityChosen = 'UNCOMMON';
-        else rarityChosen = 'COMMON';
-
-        // Find locked items of chosen rarity
-        let pool = lockedTrails.filter(t => t.rarity === rarityChosen);
-        
-        // If no locked items of that rarity, pick from ANY locked items to ensure no duplicates
-        if (pool.length === 0) {
-            pool = lockedTrails; 
-        }
-        
-        const wonTrail = pool[Math.floor(Math.random() * pool.length)];
-
-        trailData.unlocked.push(wonTrail.id);
-        trailData.cratesOpened++;
-
-        saveTrails();
-        renderTrailShop();
-        openNeuralCrate(wonTrail, true);
-        
-        if (window.AudioFX && window.AudioFX.pickup) window.AudioFX.pickup();
-        return wonTrail;
-    } else {
-        if (window.triggerShopReject) window.triggerShopReject();
-        return null;
-    }
-}
-
-function openNeuralCrate(wonTrail, isNew) {
-    const rarityColor = RARITY_COLORS[wonTrail.rarity] || '#00e5ff';
-    const overlay = document.createElement('div');
-    overlay.className = 'crate-opening-overlay';
-    overlay.innerHTML = `
-        <div class="crate-container">
-            <div id="neural-crate" class="neural-crate" style="border-color: ${rarityColor}; box-shadow: 0 0 30px ${rarityColor}44"></div>
-            <div class="opening-text" style="color: ${rarityColor}">UPLINKING DATA...</div>
-            <div id="crate-burst" class="crate-burst"></div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-
-    const crate = document.getElementById('neural-crate');
-    const burstContainer = document.getElementById('crate-burst');
-
-    // Custom CSS for crate icon color
-    crate.style.setProperty('--rarity-color', rarityColor);
-
-    // 1. Initial Shake
-    setTimeout(() => {
-        crate.classList.add('crate-shake');
-        if (window.AudioFX && window.AudioFX.loadingDrive) window.AudioFX.loadingDrive();
-    }, 500);
-
-    // 2. Intense Glow & Rays (Now uses Rarity Color)
-    setTimeout(() => {
-        for (let i = 0; i < 24; i++) {
-            const ray = document.createElement('div');
-            ray.className = 'crate-light-ray';
-            ray.style.transform = `rotate(${i * 15}deg)`;
-            ray.style.height = '0px';
-            ray.style.background = rarityColor;
-            ray.style.boxShadow = `0 0 15px ${rarityColor}`;
-            burstContainer.appendChild(ray);
-            
-            setTimeout(() => {
-                ray.style.transition = 'height 0.8s ease, opacity 0.8s ease';
-                ray.style.height = '400px';
-                ray.style.opacity = '1';
-            }, i * 20);
-        }
-        crate.style.boxShadow = `0 0 120px ${rarityColor}, inset 0 0 50px ${rarityColor}`;
-        crate.style.borderColor = '#fff';
-    }, 2000);
-
-    // 3. Explosion & Result
-    setTimeout(() => {
-        if (window.AudioFX && window.AudioFX.shatter) window.AudioFX.shatter();
-        overlay.style.transition = 'opacity 0.4s ease';
-        overlay.style.opacity = '0';
-        
-        setTimeout(() => {
-            overlay.remove();
-            showSpinResult(wonTrail, isNew);
-        }, 400);
-    }, 3500);
-}
-
 function selectTrail(id) {
-    if (trailData.unlocked.includes(id)) {
+    // Check if trail exists in original TRAILS
+    const originalTrail = TRAILS.find(t => t.id === id);
+    if (originalTrail && trailData.unlocked.includes(id)) {
         trailData.equipped = id;
+        // Clear crate equipped trail so this one takes priority
+        if (window.clearCrateEquipped) window.clearCrateEquipped();
         saveTrails();
-        renderTrailShop();
+        if (window.renderMyTrails) window.renderMyTrails();
         if (window.AudioFX && window.AudioFX.pickup) window.AudioFX.pickup();
+        return;
     }
-}
-
-function showSpinResult(trail, isNew) {
-    const resultOverlay = document.createElement('div');
-    resultOverlay.id = 'spin-result-overlay';
-    resultOverlay.className = 'spin-result-container';
-    
-    const rarityColor = RARITY_COLORS[trail.rarity] || '#fff';
-
-    resultOverlay.innerHTML = `
-        <div class="spin-result-card" style="border-color: ${rarityColor}">
-            <div class="spin-result-glow" style="background: radial-gradient(circle, ${rarityColor}33 0%, transparent 70%)"></div>
-            <div class="spin-label">${isNew ? 'NEW UNLOCK' : 'DUPLICATE'}</div>
-            <div class="spin-rarity" style="color: ${rarityColor}">${trail.rarity}</div>
-            <div class="spin-name">${trail.name}</div>
-            <div class="spin-preview" style="${getTrailPreviewStyle(trail)}"></div>
-            <button class="btn-sync" style="margin-top: 20px; width: 100%; border-color: ${rarityColor}; color: ${rarityColor}" onclick="this.parentElement.parentElement.remove()">REDEEM UNIT</button>
-        </div>
-    `;
-    
-    document.body.appendChild(resultOverlay);
+    // Check crate system trails
+    if (window.equipCrateTrail) {
+        window.equipCrateTrail(id);
+        trailData.equipped = ''; // Clear original equipped
+        saveTrails();
+        if (window.renderMyTrails) window.renderMyTrails();
+    }
 }
 
 function getTrailPreviewStyle(trail) {
@@ -228,66 +110,137 @@ function getTrailPreviewStyle(trail) {
     if (trail.type === 'solid') return `background: ${trail.color}; height: 4px; width: 80%; border-radius: 2px;`;
     if (trail.type === 'glow') return `background: ${trail.color}; height: 4px; width: 80%; border-radius: 2px; box-shadow: 0 0 10px ${trail.color};`;
     if (trail.type === 'box') return `background: repeating-linear-gradient(90deg, ${trail.color}, ${trail.color} 10px, transparent 10px, transparent 15px); height: 10px; width: 80%;`;
-    if (trail.id === 'legend_rainbow') return `background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet); height: 4px; width: 80%; border-radius: 2px;`;
+    if (trail.id === 'legend_rainbow' || (trail.type === 'special' && trail.color === 'rainbow')) return `background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet); height: 4px; width: 80%; border-radius: 2px;`;
+    if (trail.type === 'glitch') return `background: repeating-linear-gradient(90deg, ${trail.color}, ${trail.color} 8px, transparent 8px, transparent 12px); height: 6px; width: 80%;`;
     return `background: ${trail.color || '#fff'}; height: 4px; width: 80%; border-radius: 2px;`;
 }
 
-function renderTrailShop() {
+/**
+ * MY TRAILS — equip-only panel showing all unlocked trails 
+ * from both the original trail system and crate system.
+ */
+function renderMyTrails() {
     const shopList = document.getElementById('trail-list');
     if (!shopList) return;
 
-    const currentCost = getCrateCost();
-    const allUnlocked = TRAILS.every(t => trailData.unlocked.includes(t.id));
+    // Gather all unlocked trails from both systems
+    const allTrails = [];
+
+    // Original trails
+    TRAILS.forEach(trail => {
+        if (trailData.unlocked.includes(trail.id)) {
+            allTrails.push({ ...trail, source: 'original' });
+        }
+    });
+
+    // Crate system trails
+    if (window.getCrateUnlockedTrails) {
+        const crateTrails = window.getCrateUnlockedTrails();
+        crateTrails.forEach(trail => {
+            // Avoid duplicates (if trail exists in both systems)
+            if (!allTrails.find(t => t.id === trail.id)) {
+                allTrails.push({ ...trail, source: 'crate' });
+            }
+        });
+    }
+
+    // Determine currently equipped trail
+    const equippedId = getCurrentEquippedId();
+
+    const totalUnlocked = allTrails.length;
 
     shopList.innerHTML = `
-        <div class="shop-section-title">NEURAL UPLINK</div>
-        <div class="spin-area" style="border-color: #00e5ff; background: rgba(0, 229, 255, 0.05); ${allUnlocked ? 'opacity: 0.5;' : ''}">
-            <div class="spin-info">
-                <span class="spin-cost-label" style="color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);">${allUnlocked ? 'DATABASE COMPLETE' : 'ENCRYPTION CRATE'}</span>
-                <span class="spin-price" style="color: #fff;">${allUnlocked ? 'MAXED' : currentCost + ' CR'}</span>
-            </div>
-            <button class="ach-action-btn collect-btn" 
-                    style="border-color: #00e5ff; color: #00e5ff;" 
-                    ${allUnlocked ? 'disabled' : ''}
-                    onclick="spinForTrail()">${allUnlocked ? 'SOLD OUT' : 'BUY CRATE'}</button>
-        </div>
-        <div class="trail-grid" id="trail-grid-inner"></div>
+        <div class="shop-section-title">EQUIPPED TRAIL</div>
+        ${renderEquippedTrailBanner(equippedId, allTrails)}
+        <div class="shop-section-title" style="margin-top: 15px;">YOUR COLLECTION (${totalUnlocked})</div>
+        <div class="trail-grid" id="my-trail-grid"></div>
     `;
 
-    const grid = document.getElementById('trail-grid-inner');
-    TRAILS.forEach(trail => {
-        const isUnlocked = trailData.unlocked.includes(trail.id);
-        const isEquipped = trailData.equipped === trail.id;
-        
+    const grid = document.getElementById('my-trail-grid');
+    if (!grid) return;
+
+    if (allTrails.length === 0) {
+        grid.innerHTML = `<div style="color: #555; text-align: center; padding: 30px; letter-spacing: 2px; font-size: 12px;">NO TRAILS UNLOCKED YET<br><span style="font-size: 10px; color: #444;">Open Neural Caches to discover trails</span></div>`;
+        return;
+    }
+
+    allTrails.forEach(trail => {
+        const isEquipped = trail.id === equippedId;
+        const rarityColor = getRarityColor(trail.rarity);
+        const rarityBG = isEquipped
+            ? `rgba(${hexToRgb(rarityColor)}, 0.12)`
+            : `rgba(${hexToRgb(rarityColor)}, 0.05)`;
+
         const card = document.createElement('div');
-        card.className = `trail-card ${isUnlocked ? '' : 'locked'} ${isEquipped ? 'equipped' : ''}`;
-        
-        // rarity-based background
-        const rarityBG = RARITY_BG_COLORS[trail.rarity] || 'rgba(255,255,255,0.05)';
-        card.style.background = isUnlocked ? rarityBG : 'rgba(0,0,0,0.5)';
-        card.style.borderColor = isUnlocked ? (RARITY_COLORS[trail.rarity] || 'var(--primary)') : '#333';
-        
-        card.onclick = () => isUnlocked && selectTrail(trail.id);
-        
-        const rarityClass = trail.rarity.toLowerCase();
-        
-        const statusText = isEquipped ? 'EQUIPPED' : (isUnlocked ? 'UNLOCKED' : (trail.exclusive ? 'ACHIEVEMENT' : 'LOCKED'));
-        
+        card.className = `trail-card ${isEquipped ? 'equipped' : ''}`;
+        card.style.background = rarityBG;
+        card.style.borderColor = isEquipped ? rarityColor : `${rarityColor}44`;
+        card.onclick = () => selectTrail(trail.id);
+
+        const statusText = isEquipped ? 'EQUIPPED' : 'TAP TO EQUIP';
+
         card.innerHTML = `
-            <div class="trail-rarity-dot ${rarityClass}" style="background: ${RARITY_COLORS[trail.rarity]}"></div>
-            <div class="trail-card-name" style="color: ${isUnlocked ? '#fff' : '#666'}">${trail.name}</div>
-            <div class="trail-card-preview" style="${getTrailPreviewStyle(trail)}; opacity: ${isUnlocked ? 1 : 0.2}"></div>
-            <div class="trail-status" style="color: ${isUnlocked ? (RARITY_COLORS[trail.rarity] || '#aaa') : (trail.exclusive ? '#ff00ff' : '#444')}">${statusText}</div>
+            <div class="trail-rarity-dot" style="background: ${rarityColor}; box-shadow: 0 0 6px ${rarityColor};"></div>
+            <div class="trail-card-name" style="color: #fff;">${trail.name}</div>
+            <div class="trail-card-preview" style="${getTrailPreviewStyle(trail)};"></div>
+            <div class="trail-status" style="color: ${isEquipped ? '#000' : rarityColor}; ${isEquipped ? `background: ${rarityColor};` : ''}">${statusText}</div>
         `;
         grid.appendChild(card);
     });
+}
+
+function renderEquippedTrailBanner(equippedId, allTrails) {
+    const equipped = allTrails.find(t => t.id === equippedId);
+    if (!equipped) {
+        return `<div style="color: #555; padding: 15px; border: 1px dashed #333; border-radius: 8px; text-align: center; letter-spacing: 2px; font-size: 11px;">NO TRAIL EQUIPPED</div>`;
+    }
+    const rColor = getRarityColor(equipped.rarity);
+    return `
+        <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: rgba(${hexToRgb(rColor)}, 0.08); border: 1px solid ${rColor}44; border-radius: 8px;">
+            <div style="${getTrailPreviewStyle(equipped)} width: 60px; flex-shrink: 0;"></div>
+            <div style="flex-grow: 1;">
+                <div style="font-weight: 900; color: #fff; letter-spacing: 1px; font-size: 14px;">${equipped.name}</div>
+                <div style="font-size: 10px; color: ${rColor}; font-weight: 900; letter-spacing: 2px; margin-top: 3px;">${equipped.rarity}</div>
+            </div>
+            <div style="color: ${rColor}; font-size: 10px; font-weight: 900; letter-spacing: 1px; background: ${rColor}22; padding: 4px 10px; border-radius: 10px;">ACTIVE</div>
+        </div>
+    `;
+}
+
+function getCurrentEquippedId() {
+    // Check crate system first
+    if (window.getEquippedCrateTrail) {
+        const crateTrail = window.getEquippedCrateTrail();
+        if (crateTrail) return crateTrail.id;
+    }
+    return trailData.equipped || 'standard_white';
+}
+
+function getRarityColor(rarity) {
+    const colors = {
+        'COMMON': '#ffffff',
+        'UNCOMMON': '#00e5ff',
+        'RARE': '#9d00ff',
+        'EPIC': '#ff0055',
+        'LEGENDARY': '#ffd700',
+        'MYTHIC': '#ff0000',
+        'MYTHICAL': '#ff0033'
+    };
+    return colors[rarity] || RARITY_COLORS[rarity] || '#00e5ff';
+}
+
+function hexToRgb(hex) {
+    // Handle non-hex colors
+    if (!hex || !hex.startsWith('#')) return '0, 229, 255';
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 229, 255';
 }
 
 function unlockTrail(id) {
     if (!trailData.unlocked.includes(id)) {
         trailData.unlocked.push(id);
         saveTrails();
-        if (window.renderTrailShop) window.renderTrailShop();
+        if (window.renderMyTrails) window.renderMyTrails();
         return true;
     }
     return false;
@@ -295,8 +248,9 @@ function unlockTrail(id) {
 
 // Expose APIs
 window.initTrails = initTrails;
-window.spinForTrail = spinForTrail;
 window.selectTrail = selectTrail;
 window.getEquippedTrail = getEquippedTrail;
-window.renderTrailShop = renderTrailShop;
+window.renderMyTrails = renderMyTrails;
+window.renderTrailShop = renderMyTrails; // backward compat
 window.unlockTrail = unlockTrail;
+

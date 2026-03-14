@@ -15,7 +15,7 @@ let shopData = {
         shield: { name: "NEGATION FIELD", desc: "Increases shield duration.", level: 1, maxLevel: 5, basePrice: 300, priceMult: 1.6, baseDuration: 5.0, durChange: 1.25, icon: "🛡" }
     },
     consumables: {
-        headStart: { name: "ADVANCED DEPLOY", desc: "Start run at 500m instantly.", owned: 0, price: 500, icon: "🚀" },
+        headStart: { name: "ADVANCED DEPLOY", desc: "Start run at 500m instantly.", owned: 0, price: 1000, icon: "🚀" },
         aegisArmor: { name: "AEGIS PLATING", desc: "Start next run with a free hit shield.", owned: 0, price: 300, icon: "🛡" }
     }
 };
@@ -190,29 +190,46 @@ function renderShopPanel() {
 function switchShopTab(tab) {
     const shopList = document.getElementById('shop-list');
     const trailList = document.getElementById('trail-list');
+    const crateList = document.getElementById('crate-list');
     const tabUpg = document.getElementById('tab-upgrades');
     const tabTrail = document.getElementById('tab-trails');
+    const tabCrates = document.getElementById('tab-crates');
+
+    // Hide all
+    shopList.classList.add('hidden');
+    trailList.classList.add('hidden');
+    if (crateList) crateList.classList.add('hidden');
+    tabUpg.classList.remove('active');
+    tabTrail.classList.remove('active');
+    if (tabCrates) tabCrates.classList.remove('active');
 
     if (tab === 'upgrades') {
         shopList.classList.remove('hidden');
-        trailList.classList.add('hidden');
         tabUpg.classList.add('active');
-        tabTrail.classList.remove('active');
         renderShopPanel();
-    } else {
-        shopList.classList.add('hidden');
+    } else if (tab === 'mytrails') {
         trailList.classList.remove('hidden');
-        tabUpg.classList.remove('active');
         tabTrail.classList.add('active');
-        if (window.renderTrailShop) window.renderTrailShop();
+        if (window.renderMyTrails) window.renderMyTrails();
+    } else if (tab === 'crates') {
+        if (crateList) crateList.classList.remove('hidden');
+        if (tabCrates) {
+            tabCrates.classList.add('active');
+            tabCrates.style.color = '#ffff00';
+            tabCrates.style.borderColor = '#ffff00';
+            tabCrates.style.background = 'rgba(255, 255, 0, 0.1)';
+            tabCrates.style.boxShadow = '0 0 10px rgba(255, 255, 0, 0.2)';
+        }
+        if (window.renderCrateShopTab) window.renderCrateShopTab();
     }
 }
 
-// Update initialization to include trails
+// Update initialization to include trails and crates
 const originalInitShop = initShop;
 initShop = function () {
     originalInitShop();
     if (window.initTrails) window.initTrails();
+    if (window.initCrateSystem) window.initCrateSystem();
 };
 
 // Expose APIs
