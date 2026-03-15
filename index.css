@@ -179,6 +179,10 @@ canvas {
     display: none !important;
 }
 
+.mobile-features-toggle, .mobile-features-dropdown {
+    display: none !important;
+}
+
 .overlay.hidden {
     display: none !important;
 }

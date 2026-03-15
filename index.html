@@ -126,12 +126,20 @@
                 <input type="text" id="username-input" class="cyber-input" value="GUEST_PILOT" maxlength="15"
                     spellcheck="false">
             </div>
-
-            <div class="go-btn-group" style="margin-top: 25px; margin-bottom: 15px;">
+            <div class="go-btn-group" style="margin-top: 25px; margin-bottom: 15px; position: relative;">
                 <button id="nav-play-btn" class="btn-sync btn-play-main">▶ DEPLOY OPERATOR</button>
+                
+                <!-- Mobile only dropdown -->
+                <button id="features-toggle-btn" class="btn-sync mobile-features-toggle hidden" style="font-size: 11px; width: 220px; margin-top: 5px; color: #aaa; border-color: rgba(255,255,255,0.2);">★ SYSTEM FEATURES ▼</button>
+                <div id="features-dropdown" class="hidden mobile-features-dropdown" style="position: absolute; top: 100%; margin-top: 5px; background: rgba(10,10,14,0.95); border: 1px solid var(--primary); padding: 15px; border-radius: 8px; z-index: 100; display: flex; flex-direction: column; gap: 10px; width: 220px; box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(0,229,255,0.2);">
+                    <button id="start-lb-btn-mobile" class="btn-sync btn-lb" style="width: 100% !important; margin: 0;">🏆 LEADERBOARD</button>
+                    <button id="start-ach-btn-mobile" class="btn-sync btn-lb" style="width: 100% !important; margin: 0;">🏅 ACHIEVEMENTS</button>
+                    <button id="start-shop-btn-mobile" class="btn-sync btn-lb" style="color: #ffeb3b !important; border-color: #ffeb3b !important; width: 100% !important; margin: 0;">🛒 MARKET</button>
+                </div>
             </div>
 
-            <div class="go-btn-row title-nav-row">
+            <!-- Desktop only row -->
+            <div class="go-btn-row title-nav-row desktop-features-row">
                 <button id="start-lb-btn" class="btn-sync btn-lb">🏆 LEADERBOARD</button>
                 <button id="start-ach-btn" class="btn-sync btn-lb">🏅 ACHIEVEMENTS</button>
                 <button id="start-shop-btn" class="btn-sync btn-lb" style="color: #ffeb3b; border-color: #ffeb3b;">🛒 MARKET</button>

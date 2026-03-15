@@ -269,6 +269,55 @@ if (overShopBtn) {
 if (shopCloseBtn) {
     shopCloseBtn.addEventListener('click', () => shopOverlay.classList.add('hidden'));
 }
+
+// Map the mobile dropdown buttons correctly
+const startLbBtnMobile = document.getElementById('start-lb-btn-mobile');
+const startAchBtnMobile = document.getElementById('start-ach-btn-mobile');
+const startShopBtnMobile = document.getElementById('start-shop-btn-mobile');
+
+if (startLbBtnMobile) {
+    startLbBtnMobile.addEventListener('click', () => lbOverlay.classList.remove('hidden'));
+}
+if (startAchBtnMobile) {
+    startAchBtnMobile.addEventListener('click', () => {
+        if (window.renderAchievementPanel) window.renderAchievementPanel();
+        achOverlay.classList.remove('hidden');
+    });
+}
+if (startShopBtnMobile) {
+    startShopBtnMobile.addEventListener('click', () => {
+        if (window.switchShopTab) window.switchShopTab('upgrades');
+        else if (window.renderShopPanel) window.renderShopPanel();
+        shopOverlay.classList.remove('hidden');
+    });
+}
+
+// Features Dropdown Logic
+const featuresToggleBtn = document.getElementById('features-toggle-btn');
+const featuresDropdown = document.getElementById('features-dropdown');
+
+if (featuresToggleBtn && featuresDropdown) {
+    featuresToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        featuresDropdown.classList.toggle('hidden');
+    });
+    
+    // Close dropdown when any of its buttons are clicked
+    featuresDropdown.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => featuresDropdown.classList.add('hidden'));
+    });
+    
+    // Function to close dropdown on outside interaction (both click and touch)
+    const closeDropdownOutside = (e) => {
+        if (!featuresDropdown.classList.contains('hidden') && !featuresDropdown.contains(e.target) && e.target !== featuresToggleBtn) {
+            featuresDropdown.classList.add('hidden');
+        }
+    };
+    
+    document.addEventListener('click', closeDropdownOutside);
+    document.addEventListener('touchstart', closeDropdownOutside, { passive: true });
+}
+
 window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     if (e.code === 'KeyP') togglePause();
@@ -353,14 +402,28 @@ if (isMobile) {
 
     // Prevent default touch behaviors like scrolling, zooming, or pull-to-refresh
     document.addEventListener('touchstart', (e) => {
-        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button') &&
-            e.target.id !== 'move-joystick' && !e.target.closest('#move-joystick')) {
+        const isInteractive = e.target.tagName === 'BUTTON' || 
+                              e.target.tagName === 'INPUT' || 
+                              e.target.closest('button') || 
+                              e.target.closest('.mode-card') || 
+                              e.target.closest('.variant-card') ||
+                              e.target.closest('.level-card') ||
+                              e.target.closest('.crate-trail-card') ||
+                              e.target.closest('.shop-tab-btn') ||
+                              e.target.closest('.crate-btn') ||
+                              e.target.id === 'move-joystick' || 
+                              e.target.closest('#move-joystick');
+                              
+        if (!isInteractive) {
             e.preventDefault();
         }
     }, { passive: false });
 
     document.addEventListener('touchmove', (e) => {
-        e.preventDefault();
+        // Allow scrolling inside overlays (like shop or achievements)
+        if (!e.target.closest('.overlay') && !e.target.closest('.lb-overlay')) {
+            e.preventDefault();
+        }
     }, { passive: false });
 
     document.addEventListener('contextmenu', (e) => {
