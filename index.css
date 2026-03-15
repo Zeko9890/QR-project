@@ -2749,8 +2749,7 @@ button.joy-btn:active:not(.move-joy) {
     width: 140px; height: 90px;
     transform-style: preserve-3d;
     transform-origin: center top; /* Hinge on back edge of top face */
-    transform: rotateX(90deg) translateY(-45px) translateZ(44px); 
-    /* translateZ brings it "up" to the top edge (45px half height). translateY centers depth. */
+    transform: translateZ(-45px) rotateX(90deg); 
     z-index: 10;
 }
 
@@ -2775,6 +2774,7 @@ button.joy-btn:active:not(.move-joy) {
     position: absolute; width: 144px; height: 2px;
     top: 45px; left: -2px; /* On Lid */
     background: #00e5ff; box-shadow: 0 0 10px #00e5ff;
+    transform: translateZ(1px);
 }
 
 /* Inner glow */
@@ -2792,10 +2792,10 @@ button.joy-btn:active:not(.move-joy) {
 .crate-front::before {
     content: '◈'; position: absolute; top: 50%; left: 50%; 
     transform: translate(-50%, -50%); font-size: 24px; color: #00e5ff;
-    text-shadow: 0 0 15px #00e5ff; z-index: 2; transition: transform 0.5s ease;
+    text-shadow: 0 0 15px #00e5ff; z-index: 2; transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 .crate-front.crate-lock-twisting::before {
-    transform: translate(-50%, -50%) rotate(180deg) scale(1.2); color: #fff; text-shadow: 0 0 30px #fff;
+    transform: translate(-50%, -50%) rotate(180deg) scale(1.3); color: #fff; text-shadow: 0 0 30px #fff;
 }
 
 /* ── Crate Animations ── */
@@ -2820,8 +2820,8 @@ button.joy-btn:active:not(.move-joy) {
 
 /* Lid Opening Keyframes */
 @keyframes crateOpenHinge {
-    0% { transform: rotateX(90deg) translateY(-45px) translateZ(44px); }
-    100% { transform: rotateX(90deg) translateY(-45px) translateZ(44px) rotateX(-110deg); }
+    0% { transform: translateZ(-45px) rotateX(90deg); }
+    100% { transform: translateZ(-45px) rotateX(200deg); }
 }
 
 .crate-lid.open {

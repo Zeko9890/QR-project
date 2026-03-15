@@ -240,6 +240,11 @@ function beginCrateSequence(reward, isDuplicate, rarityColor) {
     // Energy leaks start building up inside
     innerGlow.style.opacity = '0.5';
     innerGlow.style.background = rarityColor;
+
+    // Twist the lock
+    setTimeout(() => {
+        if (frontFace) frontFace.classList.add('crate-lock-twisting');
+    }, 500);
     
     // Phase 2: Open Lid + Energy Burst (1.5s)
     setTimeout(() => {
